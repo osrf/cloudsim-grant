@@ -428,6 +428,7 @@ exports.readResource = getResource
 exports.updateResource = updateResource
 exports.deleteResource = deleteResource
 
-//exports.signToken = jstoken.signToken
+// the auth server signs tokens
+exports.signToken = jstoken.signToken
 //exports.verifyToken = jstoken.verifyToken
 
