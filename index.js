@@ -4,42 +4,54 @@ const util = require("util")
 const jstoken = require("./token")
 const model = require("./model")
 
+// the resources data structure
 let resources = {}
-let pubkey = ''
-let authServerIp = ''
 
+// the public key from the cloudsim-auth server, which allows us
+// to verify any token signed by the server
+let pubkey = ''
+
+// The admin user
+let adminUser
 
 // Initialization
-// ip: the authentication ip to verify that users exist
-// key: the public authentication server key, to verify tokens
-function init(key, ip) {
-  authServerIp = ip
-  pubkey = key
-
-  loadPermissions( () =>{
-    console.log('read all permissions')
+// publicAuthKey: the public authentication server key, to verify tokens
+// adminUser: the initial username, owner of the first resource
+// resource: the first resource
+function init(publicAuthKey, adminUsername, resource) {
+  adminUser = adminUsername
+  pubkey = publicAuthKey
+  console.log('\n\ncloudsim-grant init\nloading db...')
+  loadPermissions(adminUser, resource, () =>{
+    console.log('cloudsim-grant db loaded\n')
   })
 }
 
-function loadPermissions(cb) {
-
+// read pemissions from the database
+function loadPermissions(adminUser, resource, cb) {
   const callback = console.log
-
   model.readDb((err, items)=>{
     if(err) {
       cb(err)
       return
     }
+    console.log('data loaded, clearing db')
     // remove the data in the db
     model.clearDb()
+
+    if (items.length == 0) {
+       // add the original resource
+      setResource(adminUser, resource, {}, callback)
+    }
     // put the data back
     for (let i=0; i < items.length; i++) {
       const item = items[i]
-      console.log(JSON.stringify(item))
+      console.log('  ' + i + '] ' + JSON.stringify(item))
       switch (item.operation) {
         case 'set': {
           console.log('set')
           setResource(item.data.owner,
+                      item.data.resource,
                       item.data.data,
                       console.log)
         }
@@ -62,7 +74,7 @@ function loadPermissions(cb) {
                            callback)
         }
         default: {
-          cb('Unknown operation "' + item.operation +'"')
+          cb('Unknown operation "' + item.operation + '"')
           return
         }
       }
@@ -83,8 +95,9 @@ function setResource(me, resource, data, cb) {
       {username: me, readOnly: false}
     ]}
   }
-  cb(null)
+  cb(null, resources[resource])
 }
+
 
 function createResource (me, resource, data, cb) {
   if(resources[resource]) {
@@ -130,6 +143,7 @@ function getResource(me, resource, cb) {
   }
   isAuthorized(me, resource, true, (err, authorized) => {
     if(authorized) {
+      // deep copy of the resource
       const res = JSON.parse(JSON.stringify(resources[resource]))
       cb(null, res)
       return
@@ -139,7 +153,6 @@ function getResource(me, resource, cb) {
       return
     }
   })
-
 }
 
 function grantPermission(me, user, resource, readOnly, cb) {
@@ -300,56 +313,34 @@ function revokePermission (me, user, resource, readOnly, cb) {
   })
 }
 
+
+function isAuthorizedSync(user, resourceName, readOnly) {
+
+  const resource = resources[resourceName]
+  if (!resource) {
+    return false
+  }
+
+  const permissions  = resource.permissions
+  const current = permissions.find ((userInfo) => {
+      return userInfo.username == user
+  })
+  if (!current) {
+    return false
+  }
+  // not enough permission
+  if(current.readonly && readOnly == false) {
+    return false
+  }
+  // user in the list, with enough permissions
+  return true
+}
+
 // Check if a user already has a given permission for a resource
 function isAuthorized(user, resource, readOnly, cb) {
-  getResourceUsers(resource, function (err, users) {
-    // Error getting users for this resource
-    if (err) {
-      cb(err)
-      return
-    }
-
-    // Get user's current permission for this resource
-    const current = users.find ((userInfo) => {
-        return userInfo.username == user
-    })
-
-    // User not authorized for this resource yet
-    if (!current) {
-      cb(null, false)
-      return
-    }
-
-    // Currently read only, so not write authorized
-    if(current.readonly && readOnly == false) {
-      // not authorized
-      cb(null, false)
-      return
-    }
-    // the user has access
-    cb(null, true)
-  })
+  const r = isAuthorizedSync(user, resource, readOnly)
+  cb(null, r)
 }
-
-// Returns all users for the given resource
-// resource: resource to check
-// cb: callback with params:
-// - error
-// - list of users
-function getResourceUsers (resourceName, cb) {
-  let resource = resources[resourceName]
-
-  let users = []
-  if(resource) {
-    users = resource.permissions
-    if (!users) {
-      cb('resource has no permissions')
-      return
-    }
-  }
-  cb(null, users)
-}
-
 
 // route for grant
 function grant(req, res) {
@@ -365,7 +356,8 @@ function grant(req, res) {
       return
     }
     const granter = decoded.username
-    grantPermission(granter, grantee, resource, readOnly, (err, success, message)=>{
+    grantPermission(granter,
+      grantee, resource, readOnly, (err, success, message)=>{
       let msg = message
       if (err) {
         success = false
@@ -397,25 +389,59 @@ function revoke(req, res) {
       res.jsonp({success:false, msg: err.message })
       return
     }
+
     const granter = decoded.username
-    revokePermission(granter, grantee, resource, readOnly, (err, success, message)=>{
-       let msg = message
-       if (err) {
-          msg = err
-       }
-       const r ={   operation: 'revoke',
-                    granter: granter,
-                    grantee: grantee,
-                    resource: resource,
-                    readOnly: readOnly,
-                    success: success,
-                    msg: msg
-                 }
-       res.jsonp(r)
+    revokePermission(granter,
+        grantee, resource, readOnly, (err, success, message)=>{
+      let msg = message
+      if (err) {
+        msg = err
+      }
+      const r ={   operation: 'revoke',
+                  granter: granter,
+                  grantee: grantee,
+                  resource: resource,
+                  readOnly: readOnly,
+                  success: success,
+                  msg: msg
+               }
+      res.jsonp(r)
     })
   })
 }
 
+function readAllResourcesForUser(userToken, cb) {
+  jstoken.verifyToken(userToken, (err, decoded) => {
+    if(err) {
+      cb(err)
+      return
+    }
+    const user = decoded.username
+    items =[]
+    for (let res in resources) {
+      if (resources.hasOwnProperty(res)) {
+        // check for permission (readOnly)
+        if (isAuthorizedSync(user, res, true)) {
+          const data = JSON.parse(JSON.stringify(resources[res]))
+          // this resource is available
+          items.push(data)
+        }
+      }
+    }
+    cb(null, items)
+  })
+}
+
+// this is a convenient method to get the next id for a
+// given resource type (i.e. simulation). The value is
+// kept in the database
+function getNextResourceId(resourceType, cb) {
+  client.incr(resourceType + "_id", function(err, id) {
+    if(err)
+      cb(err)
+    cb(null, resourceType + '-' + id)
+  });
+}
 
 exports.init = init
 exports.grant = grant
@@ -427,8 +453,13 @@ exports.createResource = createResource
 exports.readResource = getResource
 exports.updateResource = updateResource
 exports.deleteResource = deleteResource
+exports.readAllResourcesForUser = readAllResourcesForUser
+
+
+
+exports.getNextResourceId = getNextResourceId
 
 // the auth server signs tokens
 exports.signToken = jstoken.signToken
-//exports.verifyToken = jstoken.verifyToken
+exports.verifyToken = jstoken.verifyToken
 

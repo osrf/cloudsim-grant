@@ -4,25 +4,37 @@ const redis = require("redis")
 const client = redis.createClient()
 
 // the database list where data is saved
-let listName = 'jsgrant'
+let listName = 'cloudsim-grant'
+
+// Redis events
+client.on("error", function (err) {
+    console.log("Redis error: " + err);
+})
+
+client.on("connect", function (err) {
+    console.log("Redis connect");
+})
 
 if (process.env.NODE_ENV === "test") {
-  console.log('jsgrant/model.js NODE_ENV: ' + process.env.NODE_ENV)
+  console.log('cloudsim-grant/model.js NODE_ENV: ' + process.env.NODE_ENV)
   // test mode...
   // use the test list instead of the live one
-  listName = 'jsgrant_test'
+  listName = 'cloudsim-grant_test'
 }
-
 
 // internal function to add an item to the list
 function push(operation, data) {
 
   let info = {
     operation: operation,
-    data: data,
+    data: data
   }
+
   const json = JSON.stringify(info)
-  client.rpush( listName, json)
+  const dbData = json // json.replace(/"|"/g, '\\"')
+  console.log('DB PUSH [' +  listName+ '] ' + dbData)
+  let r = client.rpush( listName, dbData)
+  console.log('rpush returned ' + r)
 }
 
 // revokes a permission
@@ -45,6 +57,7 @@ function setResource(owner, resource, resourceData) {
   push('set', data)
 }
 
+// share a resource with a new user
 function grant(granter, grantee, resource, readOnly ) {
   const data = {resource: resource,
                 granter: granter,
@@ -54,9 +67,9 @@ function grant(granter, grantee, resource, readOnly ) {
 }
 
 // this function expects a callback for each item with the following interface
-//  callback (err, items) where items is a list in which each item is an
-//  object with the following keys:
-//    operation, resource, data
+// callback (err, items) where items is a list in which each item is an
+// object with the following keys:
+//   operation, resource, data
 function readDb(cb) {
   // get all data from db
   client.lrange(listName, 0, -1, function (error, items) {
@@ -71,6 +84,7 @@ function readDb(cb) {
   })
 }
 
+// erases the list of all db operations
 function clearDb() {
   client.del(listName)
 }
@@ -80,7 +94,3 @@ exports.revoke = revoke
 exports.setResource = setResource
 exports.readDb = readDb
 exports.clearDb = clearDb
-
-
-
-
