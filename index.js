@@ -156,7 +156,6 @@ function getResource(me, resource, cb) {
 }
 
 function grantPermission(me, user, resource, readOnly, cb) {
-  model.grant(me, user, resource, readOnly )
   // Am I authorized to grant this permission
   isAuthorized(me, resource, readOnly, (err, authorized) =>  {
     // Error getting my authorization
@@ -228,13 +227,14 @@ function grantPermission(me, user, resource, readOnly, cb) {
                 authority : me
               }
       resources[resource].permissions.push(x)
-      var readOnlyTxt = readOnly? "read only" : "write"
-      cb(null, true, '"' + user + '" now has "' + readOnlyTxt + '" access for "' + resource +'"')
-      return
+      const readOnlyTxt = readOnly? "read only" : "write"
+      const msg = '"' + user + '" now has "' + readOnlyTxt +
+        '" access for "' + resource + '"'
+      // write it to the db
+      model.grant(me, user, resource, readOnly )
+      cb(null, true, msg)
     }
-
   })
-
 }
 
 function revokePermission (me, user, resource, readOnly, cb) {
@@ -355,6 +355,7 @@ function grant(req, res) {
       res.jsonp(response)
       return
     }
+    console.log('decoded token: ' + decoded)
     const granter = decoded.username
     grantPermission(granter,
       grantee, resource, readOnly, (err, success, message)=>{
