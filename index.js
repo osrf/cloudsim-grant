@@ -156,6 +156,10 @@ function getResource(me, resource, cb) {
 }
 
 function grantPermission(me, user, resource, readOnly, cb) {
+
+  const p = JSON.stringify(resources, null, 2)
+  console.log('\n\nGrant:', me, user, resource, '\n', p)
+
   // Am I authorized to grant this permission
   isAuthorized(me, resource, readOnly, (err, authorized) =>  {
     // Error getting my authorization
@@ -355,7 +359,7 @@ function grant(req, res) {
       res.jsonp(response)
       return
     }
-    console.log('decoded token: ' + decoded)
+    console.log('decoded token: ' + JSON.stringify(decoded))
     const granter = decoded.username
     grantPermission(granter,
       grantee, resource, readOnly, (err, success, message)=>{
@@ -376,7 +380,6 @@ function grant(req, res) {
     })
   })
 }
-
 
 // route for revoke
 function revoke(req, res) {
@@ -418,30 +421,22 @@ function readAllResourcesForUser(userToken, cb) {
       return
     }
     const user = decoded.username
-    items =[]
+    const items =[]
     for (let res in resources) {
       if (resources.hasOwnProperty(res)) {
         // check for permission (readOnly)
         if (isAuthorizedSync(user, res, true)) {
           const data = JSON.parse(JSON.stringify(resources[res]))
+          // add the name in each result
+          data.id = res
           // this resource is available
+          console.log('\n', JSON.stringify(data,null,2))
           items.push(data)
         }
       }
     }
     cb(null, items)
   })
-}
-
-// this is a convenient method to get the next id for a
-// given resource type (i.e. simulation). The value is
-// kept in the database
-function getNextResourceId(resourceType, cb) {
-  client.incr(resourceType + "_id", function(err, id) {
-    if(err)
-      cb(err)
-    cb(null, resourceType + '-' + id)
-  });
 }
 
 exports.init = init
@@ -455,10 +450,8 @@ exports.readResource = getResource
 exports.updateResource = updateResource
 exports.deleteResource = deleteResource
 exports.readAllResourcesForUser = readAllResourcesForUser
+exports.getNextResourceId = model.getNextResourceId
 
-
-
-exports.getNextResourceId = getNextResourceId
 
 // the auth server signs tokens
 exports.signToken = jstoken.signToken

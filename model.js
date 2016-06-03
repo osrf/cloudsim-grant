@@ -89,8 +89,21 @@ function clearDb() {
   client.del(listName)
 }
 
+// this is a convenient method to get the next id for a
+// given resource type (i.e. simulation). The value is
+// kept in the database
+function getNextResourceId(resourceType, cb) {
+  client.incr(resourceType + "_id", function(err, id) {
+    if(err)
+      cb(err)
+    cb(null, resourceType + '-' + id)
+  });
+}
+
+
 exports.grant = grant
 exports.revoke = revoke
 exports.setResource = setResource
 exports.readDb = readDb
 exports.clearDb = clearDb
+exports.getNextResourceId = getNextResourceId
