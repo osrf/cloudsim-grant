@@ -451,9 +451,10 @@ exports.updateResource = updateResource
 exports.deleteResource = deleteResource
 exports.readAllResourcesForUser = readAllResourcesForUser
 exports.getNextResourceId = model.getNextResourceId
+exports.grantPermission = grantPermission
+exports.revokePermission = revokePermission
 
 
 // the auth server signs tokens
 exports.signToken = jstoken.signToken
 exports.verifyToken = jstoken.verifyToken
-
