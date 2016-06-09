@@ -6,9 +6,9 @@ const dotenv = require('dotenv')
 const NodeRSA = require('node-rsa')
 
 
-let  publicKey
-let  privateKey
-let  authUrl
+let  publicKey = "not a key"
+let  privateKey = "not a key"
+let  authUrl = "not a url"
 
 // this function sets the keys. It is called automatically with
 // the values found in the .env file. Only the test needs to
@@ -44,6 +44,7 @@ exports.generateKeys = function() {
 // the private key is necessary
 // the private key should only be on the auth server
 exports.signToken = function (data, cb) {
+  console.log('cloudsim-grant signing data: ' + JSON.stringify(data) )
   jwt.sign(data, privateKey, { algorithm: 'RS256' }, cb)
 }
 
