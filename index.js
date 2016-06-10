@@ -7,20 +7,15 @@ const model = require("./model")
 // the resources data structure
 let resources = {}
 
-// the public key from the cloudsim-auth server, which allows us
-// to verify any token signed by the server
-let pubkey = ''
 
 // The admin user
 let adminUser
 
 // Initialization
-// publicAuthKey: the public authentication server key, to verify tokens
-// adminUser: the initial username, owner of the first resource
-// resource: the first resource
-function init(publicAuthKey, adminUsername, resource) {
+// @adminUser: the initial username, owner of the first resource
+// @resource: the first resource
+function init(adminUsername, resource) {
   adminUser = adminUsername
-  pubkey = publicAuthKey
   console.log('\n\ncloudsim-grant init\nloading db...')
   loadPermissions(adminUser, resource, () =>{
     console.log('cloudsim-grant db loaded\n')
