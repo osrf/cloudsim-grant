@@ -14,8 +14,12 @@ let  authUrl = "not a url"
 // the values found in the .env file. Only the test needs to
 // call it directly.
 exports.initKeys = function(publicK, privateK, authUrl) {
-  publicKey = publicK
-  privateKey = privateK
+
+  if (publicK)
+    publicKey = publicK.replace(/\\n/g, "\n");
+  if (privateK)
+    privateKey = privateK.replace(/\\n/g, "\n");
+
   authUrl = authUrl
 }
 
@@ -66,6 +70,7 @@ exports.test = function() {
 
 // read the environment variables. They contain the keys(s)
 dotenv.config()
+
 exports.initKeys(process.env.CLOUDSIM_AUTH_PUB_KEY,
                  process.env.CLOUDSIM_AUTH_PRIV_KEY,
                  process.env.CLOUDSIM_AUTH_URL)
