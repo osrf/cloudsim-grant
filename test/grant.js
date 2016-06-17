@@ -122,6 +122,35 @@ describe('<Unit Test grant>', function() {
       })
     })
 
+    it('should be possible to share the toaster with jack', (done) => {
+      const req = {
+                    query: {
+                      granterToken: meToken,
+                      grantee: 'jack',
+                      resource: 'toaster',
+                      readOnly: true
+                    }
+                  }
+      const response = {
+        jsonp: function (r) {
+          if(!r.success) {
+            should.fail('cannot grant')
+          }
+          done()
+        }
+      }
+      grantjs.grant(req, response)
+
+    })
+
+    it('jack should not have write access to the toaster', (done) => {
+      grantjs.isAuthorized('jack', 'toaster', false, (e, authorized) => {
+        should.not.exist(e)
+        authorized.should.equal(false)
+        done()
+      })
+    })
+
     it('should be possible to remove the toaster', (done) => {
       grantjs.deleteResource('me', 'toaster', (e)=>{
         if(e) should.fail(e)
