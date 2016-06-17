@@ -328,7 +328,7 @@ function isAuthorizedSync(user, resourceName, readOnly) {
     return false
   }
   // not enough permission
-  if(current.readonly && readOnly == false) {
+  if(current.readOnly && readOnly == false) {
     return false
   }
   // user in the list, with enough permissions
