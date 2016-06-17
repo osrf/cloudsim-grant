@@ -3,12 +3,23 @@
 const redis = require("redis")
 const client = redis.createClient()
 
+// when true, most output is suppressed
+const noLog = true
+
+// log to console
+// @s string to log
+function log(s) {
+  if (!noLog) {
+    console.log('grant> ', s)
+  }
+}
+
 // the database list where data is saved
 let listName = 'cloudsim-grant'
 
 // Redis events
 client.on("error", function (err) {
-    console.log("Redis error: " + err);
+  console.log("Redis error: " + err);
 })
 
 client.on("connect", function (err) {
@@ -32,9 +43,9 @@ function push(operation, data) {
 
   const json = JSON.stringify(info)
   const dbData = json // json.replace(/"|"/g, '\\"')
-  console.log('DB PUSH [' +  listName+ '] ' + dbData)
+  log('DB PUSH [' +  listName+ '] ' + dbData)
   let r = client.rpush( listName, dbData)
-  console.log('rpush returned ' + r)
+  log('rpush returned ' + r)
 }
 
 // revokes a permission

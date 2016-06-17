@@ -4,9 +4,21 @@ const util = require("util")
 const jstoken = require("./token")
 const model = require("./model")
 
+// when true, log output is suppressed
+const noLog = true
+
+// log to console
+// @s string to log
+function log(s) {
+  if (!noLog) {
+    console.log('grant> ', s)
+  }
+}
+
+
+
 // the resources data structure
 let resources = {}
-
 
 // The admin user
 let adminUser
@@ -16,21 +28,33 @@ let adminUser
 // @resource: the first resource
 function init(adminUsername, resource) {
   adminUser = adminUsername
-  console.log('\n\ncloudsim-grant init\nloading db...')
+  log('\n\ncloudsim-grant init\nloading db...')
   loadPermissions(adminUser, resource, () =>{
-    console.log('cloudsim-grant db loaded\n')
+    log('cloudsim-grant db loaded\n')
   })
 }
 
 // read pemissions from the database
 function loadPermissions(adminUser, resource, cb) {
-  const callback = console.log
+
+  // callback for db operations
+  const callback = function(e, r) {
+    if (e) {
+      console.log('error loading permissions: ' + e)
+      cb(e)
+      return
+    }
+    if (!noLog) {
+      console.log('load: ', r)
+    }
+  }
+
   model.readDb((err, items)=>{
     if(err) {
       cb(err)
       return
     }
-    console.log('data loaded, clearing db')
+    log('data loaded, clearing db')
     // remove the data in the db
     model.clearDb()
 
@@ -41,18 +65,18 @@ function loadPermissions(adminUser, resource, cb) {
     // put the data back
     for (let i=0; i < items.length; i++) {
       const item = items[i]
-      console.log('  ' + i + '] ' + JSON.stringify(item))
+      log('  ' + i + '] ' + JSON.stringify(item))
       switch (item.operation) {
         case 'set': {
-          console.log('set')
+          log('set')
           setResource(item.data.owner,
                       item.data.resource,
                       item.data.data,
-                      console.log)
+                      callback)
         }
         break
         case 'grant': {
-          console.log('grant ')
+          log('grant ')
           grantPermission(item.data.granter,
                           item.data.grantee,
                           item.data.resource,
@@ -61,7 +85,7 @@ function loadPermissions(adminUser, resource, cb) {
         }
         break
         case 'revoke': {
-          console.log('revoke')
+          log('revoke')
           revokePermission(item.data.granter,
                            item.data.grantee,
                            item.data.resource,
@@ -153,13 +177,13 @@ function getResource(me, resource, cb) {
 function grantPermission(me, user, resource, readOnly, cb) {
 
   const p = JSON.stringify(resources, null, 2)
-  console.log('\n\nGrant:', me, user, resource, '\n', p)
+  log('\n\nGrant:', me, user, resource, '\n', p)
 
   // Am I authorized to grant this permission
   isAuthorized(me, resource, readOnly, (err, authorized) =>  {
     // Error getting my authorization
     if (err) {
-      console.log('grantPermission: Error getting my authorization')
+      log('grantPermission: Error getting my authorization')
       cb(err)
       return
     }
@@ -167,7 +191,7 @@ function grantPermission(me, user, resource, readOnly, cb) {
     if (!authorized) {
       const msg = '"' + me + '" has insufficient priviledges to manage "'
                      + user + '" access for "' + resource + '"'
-      // console.log('grantPermission error: ' + msg')
+      // log('grantPermission error: ' + msg')
       cb(null, false, msg)
       return
     }
@@ -354,7 +378,7 @@ function grant(req, res) {
       res.jsonp(response)
       return
     }
-    console.log('decoded token: ' + JSON.stringify(decoded))
+    log('decoded token: ' + JSON.stringify(decoded))
     const granter = decoded.username
     grantPermission(granter,
       grantee, resource, readOnly, (err, success, message)=>{
@@ -425,7 +449,7 @@ function readAllResourcesForUser(userToken, cb) {
           // add the name in each result
           data.id = res
           // this resource is available
-          console.log('\n', JSON.stringify(data,null,2))
+          log('\n', JSON.stringify(data,null,2))
           items.push(data)
         }
       }

@@ -48,7 +48,6 @@ exports.generateKeys = function() {
 // the private key is necessary
 // the private key should only be on the auth server
 exports.signToken = function (data, cb) {
-  console.log('cloudsim-grant signing data: ' + JSON.stringify(data) )
   jwt.sign(data, privateKey, { algorithm: 'RS256' }, cb)
 }
 
