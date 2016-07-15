@@ -23,7 +23,7 @@ let resources = {}
 // @resources: the first resource, or a list of resources
 function init(adminUsername, resources, cb) {
   log('\n\ncloudsim-grant init\nloading db...')
-  loadPermissions(adminUser, resources, () =>{
+  loadPermissions(adminUsername, resources, () =>{
     log('cloudsim-grant db loaded\n')
     cb()
   })
