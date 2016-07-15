@@ -39,9 +39,7 @@ function loadPermissions(adminUser, resources, cb) {
       cb(e)
       return
     }
-    if (!noLog) {
-      console.log('load: ', r)
-    }
+    log('cb ', r)
   }
 
   model.readDb((err, items)=>{
@@ -157,7 +155,7 @@ function updateResource(me, resource, data, cb) {
     }
     else {
       resources[resource].data = data
-      cb(null)
+      setResource(me, resource, data, cb)
     }
   })
 }
