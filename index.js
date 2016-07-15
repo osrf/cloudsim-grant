@@ -5,7 +5,7 @@ const jstoken = require("./token")
 const model = require("./model")
 
 // when true, log output is suppressed
-const noLog = true
+const noLog = false
 
 // log to console
 // @s string to log
@@ -15,27 +15,22 @@ function log(s) {
   }
 }
 
-
-
 // the resources data structure
 let resources = {}
 
-// The admin user
-let adminUser
-
 // Initialization
 // @adminUser: the initial username, owner of the first resource
-// @resource: the first resource
-function init(adminUsername, resource) {
-  adminUser = adminUsername
+// @resources: the first resource, or a list of resources
+function init(adminUsername, resources, cb) {
   log('\n\ncloudsim-grant init\nloading db...')
-  loadPermissions(adminUser, resource, () =>{
+  loadPermissions(adminUser, resources, () =>{
     log('cloudsim-grant db loaded\n')
+    cb()
   })
 }
 
-// read pemissions from the database
-function loadPermissions(adminUser, resource, cb) {
+// read emissions from the database
+function loadPermissions(adminUser, resources, cb) {
 
   // callback for db operations
   const callback = function(e, r) {
@@ -58,9 +53,21 @@ function loadPermissions(adminUser, resource, cb) {
     // remove the data in the db
     model.clearDb()
 
+    // if the datbase was empty, we need to populate it with the
+    // initial resources. Otherwise, they are first in the list
     if (items.length == 0) {
-       // add the original resource
-      setResource(adminUser, resource, {}, callback)
+      // make a list with resources
+      let listOfResources = null
+      if (Array.isArray(resources)) {
+        listOfResources = resources
+      }
+      else {
+        listOfResources = [resources]
+      }
+      for (let i =0; i< listOfResources.length; i++) {
+        // add each of the original resource
+        setResource(adminUser, listOfResources[i], {}, callback)
+      }
     }
     // put the data back
     for (let i=0; i < items.length; i++) {

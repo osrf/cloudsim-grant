@@ -4,13 +4,13 @@ const redis = require("redis")
 const client = redis.createClient()
 
 // when true, most output is suppressed
-const noLog = true
+const noLog = false
 
 // log to console
 // @s string to log
 function log(s) {
   if (!noLog) {
-    console.log('grant> ', s)
+    console.log('grant:db> ', s)
   }
 }
 
@@ -23,7 +23,7 @@ client.on("error", function (err) {
 })
 
 client.on("connect", function (err) {
-    console.log("Redis connect");
+    log("Redis connected");
 })
 
 if (process.env.NODE_ENV === "test") {
@@ -98,6 +98,7 @@ function readDb(cb) {
 // erases the list of all db operations
 function clearDb() {
   client.del(listName)
+  log(listName + ' database deleted')
 }
 
 // this is a convenient method to get the next id for a
