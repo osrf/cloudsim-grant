@@ -5,7 +5,7 @@ const jstoken = require("./token")
 const model = require("./model")
 
 // when true, log output is suppressed
-const noLog = false
+const noLog = true
 
 // log to console
 // @s string to log
@@ -20,9 +20,12 @@ let resources = {}
 
 // Initialization
 // @adminUser: the initial username, owner of the first resource
-// @resources: the first resource, or a list of resources
-function init(adminUsername, resources, cb) {
-  log('\n\ncloudsim-grant init\nloading db...')
+// @resources: dictionary of resource names and initial data
+function init(adminUsername, resources, database, cb) {
+  log('cloudsim-grant init')
+  // set the name of the list where data is stored
+  model.init(database)
+  log('loading data in redis list "' + database + '"')
   loadPermissions(adminUsername, resources, () =>{
     log('cloudsim-grant db loaded\n')
     cb()
@@ -55,16 +58,10 @@ function loadPermissions(adminUser, resources, cb) {
     // initial resources. Otherwise, they are first in the list
     if (items.length == 0) {
       // make a list with resources
-      let listOfResources = null
-      if (Array.isArray(resources)) {
-        listOfResources = resources
-      }
-      else {
-        listOfResources = [resources]
-      }
-      for (let i =0; i< listOfResources.length; i++) {
+      for (var resourceName in resources) {
+        const resourceData = resources[resourceName]
         // add each of the original resource
-        setResource(adminUser, listOfResources[i], {}, callback)
+        setResource(adminUser, resourceName, resourceData, callback)
       }
     }
     // put the data back

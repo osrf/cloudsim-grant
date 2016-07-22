@@ -4,7 +4,7 @@ const redis = require("redis")
 const client = redis.createClient()
 
 // when true, most output is suppressed
-const noLog = false
+const noLog = true
 
 // log to console
 // @s string to log
@@ -16,6 +16,11 @@ function log(s) {
 
 // the database list where data is saved
 let listName = 'cloudsim-grant'
+
+// set the list name
+function init(databaseName) {
+  listName = databaseName
+}
 
 // Redis events
 client.on("error", function (err) {
@@ -112,7 +117,7 @@ function getNextResourceId(resourceType, cb) {
   });
 }
 
-
+exports.init = init
 exports.grant = grant
 exports.revoke = revoke
 exports.setResource = setResource
