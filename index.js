@@ -105,16 +105,27 @@ function loadPermissions(adminUser, resources, cb) {
 }
 
 
-// documented here
+// create update delete a resource.
+//
 function setResource(me, resource, data, cb) {
   model.setResource(me, resource, data)
   if (!data) {
+    // data is null, signifying deletion
     delete resources[resource]
   }
+  // adding or updating
   else {
-    resources[resource] = {data: data, permissions: [
-      {username: me, readOnly: false}
-    ]}
+
+    if(resources[resource]) {
+      // resource update
+      resources[resource].data = data
+    }
+    else {
+      // brand new resource
+      resources[resource] = {data: data, permissions: [
+        {username: me, readOnly: false}
+      ]}
+    }
   }
   cb(null, resources[resource])
 }
@@ -152,6 +163,7 @@ function updateResource(me, resource, data, cb) {
     }
     else {
       resources[resource].data = data
+console.log('setResource')
       setResource(me, resource, data, cb)
     }
   })
@@ -340,7 +352,6 @@ function revokePermission (me, user, resource, readOnly, cb) {
 
 
 function isAuthorizedSync(user, resourceName, readOnly) {
-
   const resource = resources[resourceName]
   if (!resource) {
     return false
@@ -472,9 +483,12 @@ function authenticate(req, res, next) {
   else next()
 }
 
+// routes
 exports.init = init
 exports.grant = grant
 exports.revoke = revoke
+
+// middleware
 exports.authenticate = authenticate
 
 // crud
@@ -482,6 +496,9 @@ exports.createResource = createResource
 exports.readResource = getResource
 exports.updateResource = updateResource
 exports.deleteResource = deleteResource
+
+// util
+exports.isAuthorized = isAuthorized
 exports.readAllResourcesForUser = readAllResourcesForUser
 exports.getNextResourceId = model.getNextResourceId
 exports.grantPermission = grantPermission
