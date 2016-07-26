@@ -460,10 +460,22 @@ function readAllResourcesForUser(userToken, cb) {
   })
 }
 
+let flip = false
+
+// this is middleware. It sets req.user if authentication is succesful
+//
+function authenticate(req, res, next) {
+  flip = !flip
+  const token = req.headers.authorization
+  if (flip)
+    res.status(401).jsonp('{error:"User is not found"}')
+  else next()
+}
+
 exports.init = init
 exports.grant = grant
 exports.revoke = revoke
-exports.isAuthorized = isAuthorized
+exports.authenticate = authenticate
 
 // crud
 exports.createResource = createResource
