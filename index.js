@@ -163,7 +163,6 @@ function updateResource(me, resource, data, cb) {
     }
     else {
       resources[resource].data = data
-console.log('setResource')
       setResource(me, resource, data, cb)
     }
   })
@@ -350,7 +349,6 @@ function revokePermission (me, user, resource, readOnly, cb) {
   })
 }
 
-
 function isAuthorizedSync(user, resourceName, readOnly) {
   const resource = resources[resourceName]
   if (!resource) {
@@ -471,27 +469,74 @@ function readAllResourcesForUser(userToken, cb) {
   })
 }
 
-let flip = false
-
-// this is middleware. It sets req.user if authentication is succesful
-//
+// this is middleware:
+//  - It decodes the token (sets req.decoded)
+//  - It sets req.user
+// if authentication is succesful, it calls the next middleware
 function authenticate(req, res, next) {
-  flip = !flip
+  // get token
   const token = req.headers.authorization
-  if (flip)
+  if (!token) {
     res.status(401).jsonp('{error:"User is not found"}')
-  else next()
+    // res.jsonp({success: false, error: "missing token"})
+    return
+  }
+  // decrypt and verify token
+  jstoken.verifyToken(token, (err, decoded) => {
+    if(err) {
+      res.jsonp({success:false, error: "invalid token: " + err})
+      return
+    }
+    // success.
+    req.user = decoded.username
+    req.decoded = decoded
+    console.log('user ' + req.user)
+    next()
+  })
 }
 
-// routes
+// This function returns a middleware function that checks wether a
+// user has access to a resource.
+//  - resourceName is the name of the resource
+//  - readOnly specifies the access
+function ownsResource(resourceName, readOnly) {
+
+  return function(req, res, next) {
+    // assume user is set in authenticate
+    const user = req.user
+    // check user authorization to resource
+    isAuthorized(user, resourceName, readOnly,
+                          (err, authorized) => {
+        if(err) {
+          return res.jsonp(error(err))
+        }
+        if(!authorized){
+          let msg = 'insufficient permission for user "' + user + '"'
+          msg += ' to access resource "' + resourceName + '"'
+          console.log(msg)
+          return res.status(401).jsonp({
+             success: false,
+             error: msg
+          })
+        }
+        console.log('Authorized resource: ' + resourceName )
+        next()
+    })
+  }
+}
+
+// database setup
 exports.init = init
+
+// routes
 exports.grant = grant
 exports.revoke = revoke
 
 // middleware
 exports.authenticate = authenticate
+exports.ownsResource = ownsResource
 
-// crud
+// crud (create update read delete)
 exports.createResource = createResource
 exports.readResource = getResource
 exports.updateResource = updateResource
@@ -503,7 +548,6 @@ exports.readAllResourcesForUser = readAllResourcesForUser
 exports.getNextResourceId = model.getNextResourceId
 exports.grantPermission = grantPermission
 exports.revokePermission = revokePermission
-
 
 // the auth server signs tokens
 exports.signToken = jstoken.signToken
