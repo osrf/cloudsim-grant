@@ -105,16 +105,27 @@ function loadPermissions(adminUser, resources, cb) {
 }
 
 
-// documented here
+// create update delete a resource.
+//
 function setResource(me, resource, data, cb) {
   model.setResource(me, resource, data)
   if (!data) {
+    // data is null, signifying deletion
     delete resources[resource]
   }
+  // adding or updating
   else {
-    resources[resource] = {data: data, permissions: [
-      {username: me, readOnly: false}
-    ]}
+
+    if(resources[resource]) {
+      // resource update
+      resources[resource].data = data
+    }
+    else {
+      // brand new resource
+      resources[resource] = {data: data, permissions: [
+        {username: me, readOnly: false}
+      ]}
+    }
   }
   cb(null, resources[resource])
 }
@@ -338,9 +349,7 @@ function revokePermission (me, user, resource, readOnly, cb) {
   })
 }
 
-
 function isAuthorizedSync(user, resourceName, readOnly) {
-
   const resource = resources[resourceName]
   if (!resource) {
     return false
@@ -460,21 +469,85 @@ function readAllResourcesForUser(userToken, cb) {
   })
 }
 
+// this is middleware:
+//  - It decodes the token (sets req.decoded)
+//  - It sets req.user
+// if authentication is succesful, it calls the next middleware
+function authenticate(req, res, next) {
+  // get token
+  const token = req.headers.authorization
+  if (!token) {
+    res.status(401).jsonp('{error:"User is not found"}')
+    // res.jsonp({success: false, error: "missing token"})
+    return
+  }
+  // decrypt and verify token
+  jstoken.verifyToken(token, (err, decoded) => {
+    if(err) {
+      res.jsonp({success:false, error: "invalid token: " + err})
+      return
+    }
+    // success.
+    req.user = decoded.username
+    req.decoded = decoded
+    console.log('user ' + req.user)
+    next()
+  })
+}
+
+// This function returns a middleware function that checks wether a
+// user has access to a resource.
+//  - resourceName is the name of the resource
+//  - readOnly specifies the access
+function ownsResource(resourceName, readOnly) {
+
+  return function(req, res, next) {
+    // assume user is set in authenticate
+    const user = req.user
+    // check user authorization to resource
+    isAuthorized(user, resourceName, readOnly,
+                          (err, authorized) => {
+        if(err) {
+          return res.jsonp(error(err))
+        }
+        if(!authorized){
+          let msg = 'insufficient permission for user "' + user + '"'
+          msg += ' to access resource "' + resourceName + '"'
+          console.log(msg)
+          return res.status(401).jsonp({
+             success: false,
+             error: msg
+          })
+        }
+        console.log('Authorized resource: ' + resourceName )
+        next()
+    })
+  }
+}
+
+// database setup
 exports.init = init
+
+// routes
 exports.grant = grant
 exports.revoke = revoke
-exports.isAuthorized = isAuthorized
 
-// crud
+// middleware
+exports.authenticate = authenticate
+exports.ownsResource = ownsResource
+
+// crud (create update read delete)
 exports.createResource = createResource
 exports.readResource = getResource
 exports.updateResource = updateResource
 exports.deleteResource = deleteResource
+
+// util
+exports.isAuthorized = isAuthorized
 exports.readAllResourcesForUser = readAllResourcesForUser
 exports.getNextResourceId = model.getNextResourceId
 exports.grantPermission = grantPermission
 exports.revokePermission = revokePermission
-
 
 // the auth server signs tokens
 exports.signToken = jstoken.signToken
