@@ -37,10 +37,22 @@ describe('<Unit Test grant>', function() {
       done()
     })
 
-    it('should have a toaster', (done) => {
+    it('should be possible to add a toaster', (done) => {
       grantjs.createResource('me', 'toaster', {slots:2}, (e)=>{
         if(e) should.fail(e)
         done()
+      })
+    })
+
+    it('db should have the toaster', (done) => {
+      grantjs.readResource('me', 'toaster', (e, resource ) =>{
+        if(e)
+          should.fail(e)
+        else {
+          resource.data.slots.should.equal(2, 'no data')
+          resource.permissions.length.should.equal(1, 'no single owner')
+          done()
+        }
       })
     })
 
@@ -65,7 +77,23 @@ describe('<Unit Test grant>', function() {
 
     })
 
-    it('should be possible to update the toaster', (done) => {
+    it('the toaster should still be accessible', (done) => {
+      grantjs.isAuthorized('me', 'toaster', true, (e, authorized) => {
+        should.not.exist(e)
+        authorized.should.equal(true)
+        done()
+      })
+    })
+
+    it('joe should also have access to the toaster', (done) => {
+      grantjs.isAuthorized('joe', 'toaster', true, (e, authorized) => {
+        should.not.exist(e)
+        authorized.should.equal(true)
+        done()
+      })
+    })
+
+    it('should be possible to update the toaster (add slots)', (done) => {
       grantjs.updateResource('me', 'toaster', {slots:4}, (e) =>{
         if(e)
           should.fail(e)
@@ -74,7 +102,7 @@ describe('<Unit Test grant>', function() {
       })
     })
 
-    it('the toaster should now have 4 slots', (done) => {
+    it('Joe should now see the 4 slots of the toaster', (done) => {
       grantjs.readResource('joe', 'toaster', (e, resource ) =>{
         if(e)
           should.fail(e)
@@ -86,15 +114,7 @@ describe('<Unit Test grant>', function() {
       })
     })
 
-    it('joe should have access to the toaster', (done) => {
-      grantjs.isAuthorized('joe', 'toaster', true, (e, authorized) => {
-        should.not.exist(e)
-        authorized.should.equal(true)
-        done()
-      })
-    })
-
-    it('should be possible to revoke the toaster for joe', (done) => {
+    it('should be possible to revoke joe\'s toaster access', (done) => {
       const req = {
                     query: {
                       granterToken: meToken,
