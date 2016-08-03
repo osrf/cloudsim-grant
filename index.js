@@ -350,6 +350,10 @@ function revokePermission (me, user, resource, readOnly, cb) {
 }
 
 function isAuthorizedSync(user, resourceName, readOnly) {
+
+  if(!user)
+    return false
+
   const resource = resources[resourceName]
   if (!resource) {
     return false
@@ -431,7 +435,7 @@ function revoke(req, res) {
       if (err) {
         msg = err
       }
-      const r ={   operation: 'revoke',
+      const r ={  operation: 'revoke',
                   granter: granter,
                   grantee: grantee,
                   resource: resource,
@@ -444,29 +448,22 @@ function revoke(req, res) {
   })
 }
 
-function readAllResourcesForUser(userToken, cb) {
-  jstoken.verifyToken(userToken, (err, decoded) => {
-    if(err) {
-      cb(err)
-      return
-    }
-    const user = decoded.username
-    const items =[]
-    for (let res in resources) {
-      if (resources.hasOwnProperty(res)) {
-        // check for permission (readOnly)
-        if (isAuthorizedSync(user, res, true)) {
-          const data = JSON.parse(JSON.stringify(resources[res]))
-          // add the name in each result
-          data.id = res
-          // this resource is available
-          log('\n', JSON.stringify(data,null,2))
-          items.push(data)
-        }
+function readAllResourcesForUser(user, cb) {
+  const items =[]
+  for (let res in resources) {
+    if (resources.hasOwnProperty(res)) {
+      // check for permission (readOnly)
+      if (isAuthorizedSync(user, res, true)) {
+        const data = JSON.parse(JSON.stringify(resources[res]))
+        // add the name in each result
+        data.id = res
+        // this resource is available
+        log('\n', JSON.stringify(data,null,2))
+        items.push(data)
       }
     }
-    cb(null, items)
-  })
+  }
+  cb(null, items)
 }
 
 // this is middleware:
@@ -477,7 +474,7 @@ function authenticate(req, res, next) {
   // get token
   const token = req.headers.authorization
   if (!token) {
-    res.status(401).jsonp('{error:"User is not found"}')
+    res.status(401).jsonp('{"error":"No identity token provided"}')
     // res.jsonp({success: false, error: "missing token"})
     return
   }
@@ -485,6 +482,10 @@ function authenticate(req, res, next) {
   jstoken.verifyToken(token, (err, decoded) => {
     if(err) {
       res.jsonp({success:false, error: "invalid token: " + err})
+      return
+    }
+    if(!decoded.username) {
+      res.jsonp({"success":false, "error":"token must contain username"})
       return
     }
     // success.
@@ -499,28 +500,39 @@ function authenticate(req, res, next) {
 // user has access to a resource.
 //  - resourceName is the name of the resource
 //  - readOnly specifies the access
-function ownsResource(resourceName, readOnly) {
+function ownsResource(resource, readOnly) {
 
   return function(req, res, next) {
+    console.log('ownsResource')
+    let resourceName = resource
+    // check if the resource name is a route param
+    // see express route params
+    if (resource.startsWith(':')) {
+      const param = resourceName.substr(1)
+      // we are counting on a previous param middleware
+      // to have put the value in the req for us
+      resourceName = req[param]
+    }
+    console.log(' resource name:', resourceName, 'read only:', readOnly)
     // assume user is set in authenticate
     const user = req.user
     // check user authorization to resource
     isAuthorized(user, resourceName, readOnly,
                           (err, authorized) => {
-        if(err) {
-          return res.jsonp(error(err))
-        }
-        if(!authorized){
-          let msg = 'insufficient permission for user "' + user + '"'
-          msg += ' to access resource "' + resourceName + '"'
-          console.log(msg)
-          return res.status(401).jsonp({
-             success: false,
-             error: msg
-          })
-        }
-        console.log('Authorized resource: ' + resourceName )
-        next()
+      if(err) {
+        return res.jsonp(error(err))
+      }
+      if(!authorized){
+        let msg = 'insufficient permission for user "' + user + '"'
+        msg += ' to access resource "' + resourceName + '"'
+        console.log(msg)
+        return res.status(401).jsonp({
+           "success": false,
+           "error": msg
+        })
+      }
+      console.log('Authorized resource: ' + resourceName )
+      next()
     })
   }
 }
