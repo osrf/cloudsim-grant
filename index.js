@@ -224,7 +224,8 @@ function grantPermission(me, user, resource, readOnly, cb) {
       // Is already read only
       if ((readOnly == true) && (current.readOnly == true))
       {
-        cb(null, true, '"' + user + '" is already authorized for "read only" for "'
+        cb(null, true, '"' + user +
+           '" is already authorized for "read only" for "'
            + resource + '"')
         return
       }
@@ -305,7 +306,9 @@ function revokePermission (me, user, resource, readOnly, cb) {
     // If user has no authorization
     if (!current)
     {
-      cb(null, true, '"' + user + '" has no authorization for "' + resource + '" so nothing changed.')
+      const msg = '"' + user + '" has no authorization for "'
+      msg += resource + '" so nothing changed.'
+      cb(null, true, msg)
       return
     }
     else
@@ -314,15 +317,18 @@ function revokePermission (me, user, resource, readOnly, cb) {
       if ((readOnly == true) && (current.readOnly == true))
       {
         resourceUsers.splice(resourceUsers.indexOf(current), 1)
-        cb(null, true, '"' + user + '" is no longer authorized for "read only" for "'
-           + resource + '"')
+        const msg = '"' + user
+        msg += '" is no longer authorized for "read only" for "'
+        msg += + resource + '"'
+        cb(null, true, msg)
         return
       }
       // Is write, revoking write
       if ((readOnly == false) && (current.readOnly == false))
       {
         resourceUsers.splice(resourceUsers.indexOf(current), 1)
-        cb(null, true, '"' + user + '" is no longer authorized for "write" for "'
+        cb(null, true, '"' + user +
+          '" is no longer authorized for "write" for "'
            + resource + '"')
         return
       }
@@ -382,7 +388,6 @@ function isAuthorized(user, resource, readOnly, cb) {
 
 // route for grant
 function grant(req, res) {
-//  const token = req.query.granterToken
   const granter = req.user
   // where is the data? depends on the Method
   const data = req.method === "GET"?req.query:req.body
@@ -410,7 +415,6 @@ function grant(req, res) {
 
 // route for revoke
 function revoke(req, res) {
-
   const data = req.method === "GET"?req.query:req.body
   const granter = req.user
   const grantee  = data.grantee
