@@ -32,9 +32,20 @@ describe('<Unit Test grant>', function() {
   })
 
   describe('adding and sharing a resource:', function() {
-
     it('should have an empty db', (done) => {
+      grantjs.model.clearDb()
       done()
+    })
+    it('should authenticate', (done) => {
+      const req = {
+        headers : {authorization: meToken}
+      }
+      const res = {}
+      grantjs.authenticate(req, res, ()=> {
+        should.exist(req.user)
+        req.user.should.equal('me')
+        done()
+      })
     })
 
     it('should be possible to add a toaster', (done) => {
@@ -58,8 +69,9 @@ describe('<Unit Test grant>', function() {
 
     it('should be possible to share the toaster with joe', (done) => {
       const req = {
-                    query: {
-                      granterToken: meToken,
+                    headers:{authorization: meToken},
+                    user: 'me',
+                    body: {
                       grantee: 'joe',
                       resource: 'toaster',
                       readOnly: false
@@ -116,8 +128,8 @@ describe('<Unit Test grant>', function() {
 
     it('should be possible to revoke joe\'s toaster access', (done) => {
       const req = {
-                    query: {
-                      granterToken: meToken,
+                    user: 'me',
+                    body: {
                       grantee: 'joe',
                       resource: 'toaster',
                       readOnly: false
@@ -144,8 +156,8 @@ describe('<Unit Test grant>', function() {
 
     it('should be possible to share the toaster with jack', (done) => {
       const req = {
-                    query: {
-                      granterToken: meToken,
+                    user: 'me',
+                    body: {
                       grantee: 'jack',
                       resource: 'toaster',
                       readOnly: true

@@ -382,7 +382,7 @@ function isAuthorized(user, resource, readOnly, cb) {
 
 // route for grant
 function grant(req, res) {
-  const token = req.query.granterToken
+//  const token = req.query.granterToken
   const granter = req.user
   // where is the data? depends on the Method
   const data = req.method === "GET"?req.query:req.body
@@ -406,39 +406,40 @@ function grant(req, res) {
                }
     res.jsonp(r)
   })
-//  })
 }
 
 // route for revoke
 function revoke(req, res) {
-  const token = req.query.granterToken
-  const grantee  = req.query.grantee
-  const resource = req.query.resource
-  const readOnly = JSON.parse(req.query.readOnly)
 
-  jstoken.verifyToken (token, (err, decoded) => {
-    if(err) {
-      res.jsonp({success:false, msg: err.message })
-      return
+  const data = req.method === "GET"?req.query:req.body
+  const granter = req.user
+  const grantee  = data.grantee
+  const resource = data.resource
+  const readOnly = JSON.parse(data.readOnly)
+
+  if (!granter) {
+    res.jsonp({success:false, msg: 'user is not authenticated' })
+    return
+  }
+
+  revokePermission(granter,
+                   grantee,
+                   resource,
+                   readOnly, (err, success, message)=>{
+    let msg = message
+    if (err) {
+      success = false
+      msg = err
     }
-
-    const granter = decoded.username
-    revokePermission(granter,
-        grantee, resource, readOnly, (err, success, message)=>{
-      let msg = message
-      if (err) {
-        msg = err
-      }
-      const r ={  operation: 'revoke',
-                  granter: granter,
-                  grantee: grantee,
-                  resource: resource,
-                  readOnly: readOnly,
-                  success: success,
-                  msg: msg
-               }
-      res.jsonp(r)
-    })
+    const r ={  operation: 'revoke',
+                granter: granter,
+                grantee: grantee,
+                resource: resource,
+                readOnly: readOnly,
+                success: success,
+                msg: msg
+             }
+    res.jsonp(r)
   })
 }
 
@@ -465,10 +466,8 @@ function readAllResourcesForUser(user, cb) {
 //  - It sets req.user
 // if authentication is succesful, it calls the next middleware
 function authenticate(req, res, next) {
-
   // debug authentication issues:
   // console.log('authenticate headers:', req.headers)
-
   // get token
   const token = req.headers.authorization
   if (!token) {
