@@ -307,7 +307,7 @@ function revokePermission (me, user, resource, readOnly, cb) {
     if (!current)
     {
       const msg = '"' + user + '" has no authorization for "'
-      msg += resource + '" so nothing changed.'
+         + resource + '" so nothing changed.'
       cb(null, true, msg)
       return
     }
@@ -318,8 +318,8 @@ function revokePermission (me, user, resource, readOnly, cb) {
       {
         resourceUsers.splice(resourceUsers.indexOf(current), 1)
         const msg = '"' + user
-        msg += '" is no longer authorized for "read only" for "'
-        msg += + resource + '"'
+           + '" is no longer authorized for "read only" for "'
+           + resource + '"'
         cb(null, true, msg)
         return
       }
@@ -525,8 +525,8 @@ function ownsResource(resource, readOnly) {
         return res.jsonp(error(err))
       }
       if(!authorized){
-        let msg = 'insufficient permission for user "' + user + '"'
-        msg += ' to access resource "' + resourceName + '"'
+        const msg = 'insufficient permission for user "' + user + '"'
+            + ' to access resource "' + resourceName + '"'
         console.log(msg)
         return res.status(401).jsonp({
            "success": false,
