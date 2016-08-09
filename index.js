@@ -224,7 +224,8 @@ function grantPermission(me, user, resource, readOnly, cb) {
       // Is already read only
       if ((readOnly == true) && (current.readOnly == true))
       {
-        cb(null, true, '"' + user + '" is already authorized for "read only" for "'
+        cb(null, true, '"' + user +
+           '" is already authorized for "read only" for "'
            + resource + '"')
         return
       }
@@ -305,7 +306,9 @@ function revokePermission (me, user, resource, readOnly, cb) {
     // If user has no authorization
     if (!current)
     {
-      cb(null, true, '"' + user + '" has no authorization for "' + resource + '" so nothing changed.')
+      const msg = '"' + user + '" has no authorization for "'
+      msg += resource + '" so nothing changed.'
+      cb(null, true, msg)
       return
     }
     else
@@ -314,15 +317,18 @@ function revokePermission (me, user, resource, readOnly, cb) {
       if ((readOnly == true) && (current.readOnly == true))
       {
         resourceUsers.splice(resourceUsers.indexOf(current), 1)
-        cb(null, true, '"' + user + '" is no longer authorized for "read only" for "'
-           + resource + '"')
+        const msg = '"' + user
+        msg += '" is no longer authorized for "read only" for "'
+        msg += + resource + '"'
+        cb(null, true, msg)
         return
       }
       // Is write, revoking write
       if ((readOnly == false) && (current.readOnly == false))
       {
         resourceUsers.splice(resourceUsers.indexOf(current), 1)
-        cb(null, true, '"' + user + '" is no longer authorized for "write" for "'
+        cb(null, true, '"' + user +
+          '" is no longer authorized for "write" for "'
            + resource + '"')
         return
       }
@@ -382,60 +388,20 @@ function isAuthorized(user, resource, readOnly, cb) {
 
 // route for grant
 function grant(req, res) {
-  const token = req.query.granterToken
-  const grantee  = req.query.grantee
-  const resource = req.query.resource
-  const readOnly = JSON.parse(req.query.readOnly)
-
-  jstoken.verifyToken (token, (err, decoded) => {
-    if(err) {
-      const response = {success:false, msg: err.message }
-      res.jsonp(response)
-      return
+  const granter = req.user
+  // where is the data? depends on the Method
+  const data = req.method === "GET"?req.query:req.body
+  const grantee  = data.grantee
+  const resource = data.resource
+  const readOnly = JSON.parse(data.readOnly)
+  grantPermission(granter,
+    grantee, resource, readOnly, (err, success, message)=>{
+    let msg = message
+    if (err) {
+      success = false
+      msg =  err
     }
-    log('decoded token: ' + JSON.stringify(decoded))
-    const granter = decoded.username
-    grantPermission(granter,
-      grantee, resource, readOnly, (err, success, message)=>{
-      let msg = message
-      if (err) {
-        success = false
-        msg =  err
-      }
-      const r ={   operation: 'grant',
-                    granter: granter,
-                    grantee: grantee,
-                    resource: resource,
-                    readOnly: readOnly,
-                    success: success,
-                    msg: msg
-                 }
-      res.jsonp(r)
-    })
-  })
-}
-
-// route for revoke
-function revoke(req, res) {
-  const token = req.query.granterToken
-  const grantee  = req.query.grantee
-  const resource = req.query.resource
-  const readOnly = JSON.parse(req.query.readOnly)
-
-  jstoken.verifyToken (token, (err, decoded) => {
-    if(err) {
-      res.jsonp({success:false, msg: err.message })
-      return
-    }
-
-    const granter = decoded.username
-    revokePermission(granter,
-        grantee, resource, readOnly, (err, success, message)=>{
-      let msg = message
-      if (err) {
-        msg = err
-      }
-      const r ={  operation: 'revoke',
+    const r ={   operation: 'grant',
                   granter: granter,
                   grantee: grantee,
                   resource: resource,
@@ -443,8 +409,41 @@ function revoke(req, res) {
                   success: success,
                   msg: msg
                }
-      res.jsonp(r)
-    })
+    res.jsonp(r)
+  })
+}
+
+// route for revoke
+function revoke(req, res) {
+  const data = req.method === "GET"?req.query:req.body
+  const granter = req.user
+  const grantee  = data.grantee
+  const resource = data.resource
+  const readOnly = JSON.parse(data.readOnly)
+
+  if (!granter) {
+    res.jsonp({success:false, msg: 'user is not authenticated' })
+    return
+  }
+
+  revokePermission(granter,
+                   grantee,
+                   resource,
+                   readOnly, (err, success, message)=>{
+    let msg = message
+    if (err) {
+      success = false
+      msg = err
+    }
+    const r ={  operation: 'revoke',
+                granter: granter,
+                grantee: grantee,
+                resource: resource,
+                readOnly: readOnly,
+                success: success,
+                msg: msg
+             }
+    res.jsonp(r)
   })
 }
 
@@ -471,6 +470,8 @@ function readAllResourcesForUser(user, cb) {
 //  - It sets req.user
 // if authentication is succesful, it calls the next middleware
 function authenticate(req, res, next) {
+  // debug authentication issues:
+  // console.log('authenticate headers:', req.headers)
   // get token
   const token = req.headers.authorization
   if (!token) {
@@ -491,7 +492,8 @@ function authenticate(req, res, next) {
     // success.
     req.user = decoded.username
     req.decoded = decoded
-    console.log('user ' + req.user)
+    // debug: user has been authenticated
+    // console.log('authenticated user ' + req.user)
     next()
   })
 }
@@ -561,6 +563,10 @@ exports.getNextResourceId = model.getNextResourceId
 exports.grantPermission = grantPermission
 exports.revokePermission = revokePermission
 
-// the auth server signs tokens
 exports.signToken = jstoken.signToken
 exports.verifyToken = jstoken.verifyToken
+
+// republish submodules (maily for testing)
+exports.token = jstoken
+exports.model = model
+
