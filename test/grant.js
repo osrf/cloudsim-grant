@@ -47,7 +47,6 @@ describe('<Unit Test grant>', function() {
         done()
       })
     })
-
     it('should be possible to add a toaster', (done) => {
       grantjs.createResource('me', 'toaster', {slots:2}, (e)=>{
         if(e) should.fail(e)
@@ -66,6 +65,46 @@ describe('<Unit Test grant>', function() {
         }
       })
     })
+
+
+    it('there should be resources', (done) => {
+       const req = {
+                    user: 'me',
+                    }
+
+       const response = {
+          jsonp: function (r) {
+            if(!r.success) {
+              should.fail('toaster not in all resources')
+            }
+            r.result.length.should.equal(1)
+            r.result[0].id.should.equal('toaster')
+            done()
+          }
+       }
+       grantjs.allResources(req, response)
+    })
+
+    it('the resource can be obtain via a route', (done) => {
+       const req = {
+                    user: 'me',
+                    resourceName: 'toaster'
+                    }
+
+       const response = {
+          jsonp: function (r) {
+            if(!r.success) {
+              should.fail('no toaster in resource route')
+            }
+            r.resource.should.equal('toaster')
+            r.result.data.slots.should.equal(2)
+            done()
+          }
+       }
+       grantjs.resource(req, response)
+    })
+
+
 
     it('should be possible to share the toaster with joe', (done) => {
       const req = {
