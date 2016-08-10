@@ -1,6 +1,6 @@
 {
   "name": "cloudsim-grant",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "A small grant/revoke module for cloudsim",
   "main": "index.js",
   "scripts": {
