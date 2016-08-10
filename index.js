@@ -534,12 +534,14 @@ function ownsResource(resource, readOnly) {
         })
       }
       console.log('Authorized resource: ' + resourceName )
+      req.resourceName = resourceName
       next()
     })
   }
 }
 
 // route that returns all relevant resources for a user
+// assumes that req.user is set (authenticate middleware)
 function allResources(req, res) {
   readAllResourcesForUser(req.user, (err, items) => {
     const r = {success: false, operation: 'get all resource'}
@@ -554,7 +556,23 @@ function allResources(req, res) {
   })
 }
 
-
+// route to get a single resource with data and permissions
+// assumes that req.user and req.resourceName
+function resource(req, res) {
+  const resourceName = req.resourceName
+  const user = req.user
+  readResource(user, resourceName, (err, data) => {
+    const r = {success: false, operation: 'get resource'}
+    if(err) {
+      r.error = err
+    }
+    else {
+      r.success = true
+      r.result = data
+    }
+    res.jsonp(r)
+  }
+}
 
 // database setup
 exports.init = init
@@ -563,6 +581,7 @@ exports.init = init
 exports.grant = grant
 exports.revoke = revoke
 exports.allResources = allResources
+exports.resource = resource
 
 // middleware
 exports.authenticate = authenticate
