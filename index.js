@@ -554,13 +554,15 @@ function allResources(req, res) {
   })
 }
 
+
+
 // database setup
 exports.init = init
 
 // routes
 exports.grant = grant
 exports.revoke = revoke
-eports.allResources = allResources
+exports.allResources = allResources
 
 // middleware
 exports.authenticate = authenticate
