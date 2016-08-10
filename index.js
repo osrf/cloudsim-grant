@@ -571,7 +571,7 @@ function resource(req, res) {
       r.result = data
     }
     res.jsonp(r)
-  }
+  })
 }
 
 // database setup
