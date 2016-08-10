@@ -27,7 +27,7 @@ function init(adminUsername, resources, database, cb) {
   model.init(database)
   log('loading data in redis list "' + database + '"')
   loadPermissions(adminUsername, resources, () =>{
-    log('cloudsim-grant db loaded\n')
+    log('cloudsim-grant db "' + database  + '" loaded\n')
     cb()
   })
 }
@@ -168,7 +168,7 @@ function updateResource(me, resource, data, cb) {
   })
 }
 
-function getResource(me, resource, cb) {
+function readResource(me, resource, cb) {
   if(!resources[resource]) {
     cb('"' + resource + '" does not exist')
     return
@@ -539,12 +539,28 @@ function ownsResource(resource, readOnly) {
   }
 }
 
+// route that returns all relevant resources for a user
+function allResources(req, res) {
+  readAllResourcesForUser(req.user, (err, items) => {
+    const r = {success: false, operation: 'get all resource'}
+    if(err) {
+      r.error = err
+    }
+    else {
+      r.success = true
+      r.result = items
+    }
+    res.jsonp(r)
+  })
+}
+
 // database setup
 exports.init = init
 
 // routes
 exports.grant = grant
 exports.revoke = revoke
+eports.allResources = allResources
 
 // middleware
 exports.authenticate = authenticate
@@ -552,7 +568,7 @@ exports.ownsResource = ownsResource
 
 // crud (create update read delete)
 exports.createResource = createResource
-exports.readResource = getResource
+exports.readResource = readResource
 exports.updateResource = updateResource
 exports.deleteResource = deleteResource
 
