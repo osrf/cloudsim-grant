@@ -494,6 +494,7 @@ function authenticate(req, res, next) {
     req.decoded = decoded
     // debug: user has been authenticated
     // console.log('authenticated user ' + req.user)
+    log(req.user,'authenticated')
     next()
   })
 }
@@ -505,17 +506,16 @@ function authenticate(req, res, next) {
 function ownsResource(resource, readOnly) {
 
   return function(req, res, next) {
-    console.log('ownsResource')
+    log('ownsResource', resource, 'readOnly', readOnly)
     let resourceName = resource
     // check if the resource name is a route param
     // see express route params
-    if (resource.startsWith(':')) {
+    if (resourceName.startsWith(':')) {
       const param = resourceName.substr(1)
       // we are counting on a previous param middleware
       // to have put the value in the req for us
       resourceName = req[param]
     }
-    console.log(' resource name:', resourceName, 'read only:', readOnly)
     // assume user is set in authenticate
     const user = req.user
     // check user authorization to resource
@@ -527,13 +527,13 @@ function ownsResource(resource, readOnly) {
       if(!authorized){
         const msg = 'insufficient permission for user "' + user + '"'
             + ' to access resource "' + resourceName + '"'
-        console.log(msg)
+        log(msg)
         return res.status(401).jsonp({
            "success": false,
            "error": msg
         })
       }
-      console.log('Authorized resource: ' + resourceName )
+      log('Authorized resource: ' + resourceName )
       req.resourceName = resourceName
       next()
     })
