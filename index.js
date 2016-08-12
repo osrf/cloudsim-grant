@@ -544,7 +544,10 @@ function ownsResource(resource, readOnly) {
 // assumes that req.user is set (authenticate middleware)
 function allResources(req, res) {
   readAllResourcesForUser(req.user, (err, items) => {
-    const r = {success: false, operation: 'get all resource'}
+    const r = {success: false,
+               operation: 'get all resource',
+               requestor: req.user
+              }
     if(err) {
       r.error = err
     }
@@ -562,7 +565,10 @@ function resource(req, res) {
   const resourceName = req.resourceName
   const user = req.user
   readResource(user, resourceName, (err, data) => {
-    const r = {success: false, operation: 'get resource'}
+    const r = {success: false,
+               operation: 'get resource',
+               requestor: req.user
+              }
     if(err) {
       r.error = err
     }
