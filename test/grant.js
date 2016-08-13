@@ -60,7 +60,7 @@ describe('<Unit Test grant>', function() {
           should.fail(e)
         else {
           resource.data.slots.should.equal(2, 'no data')
-          resource.permissions.length.should.equal(1, 'no single owner')
+          resource.permissions['me'].readOnly.should.equal(false, 'me not owner!')
           done()
         }
       })
@@ -159,7 +159,7 @@ describe('<Unit Test grant>', function() {
           should.fail(e)
         else {
           resource.data.slots.should.equal(4, 'not updated')
-          resource.permissions.length.should.equal(2, 'not shared')
+          resource.permissions['joe'].readOnly.should.equal(false, 'not shared')
           done()
         }
       })
