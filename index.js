@@ -105,6 +105,7 @@ function loadPermissions(adminUser, resources, cb) {
 }
 
 
+
 // create update delete a resource.
 //
 function setResource(me, resource, data, cb) {
@@ -122,9 +123,14 @@ function setResource(me, resource, data, cb) {
     }
     else {
       // brand new resource
-      resources[resource] = {data: data, permissions: [
-        {username: me, readOnly: false}
-      ]}
+      resources[resource] = {
+        data: data,
+        permissions: {
+          me: {
+            readOnly: false
+          }
+        }
+      }
     }
   }
   cb(null, resources[resource])
@@ -208,16 +214,14 @@ function grantPermission(me, user, resource, readOnly, cb) {
       cb(null, false, msg)
       return
     }
-    const resourceUsers = resources[resource].permissions
-    if (!resourceUsers)
+    if (!resources[resource])
     {
       cb(null, false, 'Resource "' + resource + '" does not exist')
       return
     }
 
-    let current = resourceUsers.find ((userInfo) => {
-      return userInfo.username == user
-    })
+    let current = resources[resource].permissions[user]
+
     // If user already has some authorization
     if (current)
     {
@@ -259,11 +263,11 @@ function grantPermission(me, user, resource, readOnly, cb) {
     else
     {
       // Grant brand new permission
-      let x = { username : user,
-                readOnly : readOnly,
+      let x = { readOnly : readOnly,
                 authority : me
               }
-      resources[resource].permissions.push(x)
+      resources[resource].permissions[user] = x
+
       const readOnlyTxt = readOnly? "read only" : "write"
       const msg = '"' + user + '" now has "' + readOnlyTxt +
         '" access for "' + resource + '"'
@@ -292,17 +296,7 @@ function revokePermission (me, user, resource, readOnly, cb) {
                      + user + '" access for "' + resource + '"')
       return
     }
-
-    const resourceUsers = resources[resource].permissions
-    if (!resourceUsers)
-    {
-      cb(null, false, 'Resource "' + resource + '" does not exist')
-      return
-    }
-
-    let current = resourceUsers.find ((userInfo) => {
-      return userInfo.username == user
-    })
+    const current = resources[resource].permissions[user]
     // If user has no authorization
     if (!current)
     {
@@ -326,7 +320,7 @@ function revokePermission (me, user, resource, readOnly, cb) {
       // Is write, revoking write
       if ((readOnly == false) && (current.readOnly == false))
       {
-        resourceUsers.splice(resourceUsers.indexOf(current), 1)
+        delete resources[resource].permissions[user]
         cb(null, true, '"' + user +
           '" is no longer authorized for "write" for "'
            + resource + '"')
@@ -342,7 +336,7 @@ function revokePermission (me, user, resource, readOnly, cb) {
       // Is read-only and want to revoke write - remove it all
       if ((readOnly == false) && (current.readOnly == true))
       {
-        resourceUsers.splice(resourceUsers.indexOf(current), 1)
+        delete resources[resource].permissions[user]
         cb(null, true, '"' + user + '" had "read only" access for "'
            + resource + '" and now has nothing')
         return
@@ -364,11 +358,8 @@ function isAuthorizedSync(user, resourceName, readOnly) {
   if (!resource) {
     return false
   }
-
   const permissions  = resource.permissions
-  const current = permissions.find ((userInfo) => {
-      return userInfo.username == user
-  })
+  const current = permissions[user]
   if (!current) {
     return false
   }
@@ -388,27 +379,26 @@ function isAuthorized(user, resource, readOnly, cb) {
 
 // route for grant
 function grant(req, res) {
-  const granter = req.user
+  const requester = req.user
   // where is the data? depends on the Method
   const data = req.method === "GET"?req.query:req.body
   const grantee  = data.grantee
   const resource = data.resource
   const readOnly = JSON.parse(data.readOnly)
-  grantPermission(granter,
+  grantPermission(requester,
     grantee, resource, readOnly, (err, success, message)=>{
     let msg = message
     if (err) {
       success = false
       msg =  err
     }
-    const r ={   operation: 'grant',
-                  granter: granter,
-                  grantee: grantee,
-                  resource: resource,
-                  readOnly: readOnly,
-                  success: success,
-                  msg: msg
-               }
+    const r ={ operation: 'grant',
+               requester: requester,
+               grantee: grantee,
+               resource: resource,
+               readOnly: readOnly,
+               success: success,
+               msg: msg }
     res.jsonp(r)
   })
 }
@@ -416,17 +406,17 @@ function grant(req, res) {
 // route for revoke
 function revoke(req, res) {
   const data = req.method === "GET"?req.query:req.body
-  const granter = req.user
+  const requester = req.user
   const grantee  = data.grantee
   const resource = data.resource
   const readOnly = JSON.parse(data.readOnly)
 
-  if (!granter) {
+  if (!requester) {
     res.jsonp({success:false, msg: 'user is not authenticated' })
     return
   }
 
-  revokePermission(granter,
+  revokePermission(requester,
                    grantee,
                    resource,
                    readOnly, (err, success, message)=>{
@@ -436,7 +426,7 @@ function revoke(req, res) {
       msg = err
     }
     const r ={  operation: 'revoke',
-                granter: granter,
+                requester: requester,
                 grantee: grantee,
                 resource: resource,
                 readOnly: readOnly,
@@ -546,8 +536,7 @@ function allResources(req, res) {
   readAllResourcesForUser(req.user, (err, items) => {
     const r = {success: false,
                operation: 'get all resource',
-               requestor: req.user
-              }
+               requester: req.user}
     if(err) {
       r.error = err
     }
@@ -567,8 +556,7 @@ function resource(req, res) {
   readResource(user, resourceName, (err, data) => {
     const r = {success: false,
                operation: 'get resource',
-               requestor: req.user
-              }
+               requester: req.user}
     if(err) {
       r.error = err
     }
