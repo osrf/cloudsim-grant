@@ -379,27 +379,26 @@ function isAuthorized(user, resource, readOnly, cb) {
 
 // route for grant
 function grant(req, res) {
-  const granter = req.user
+  const requester = req.user
   // where is the data? depends on the Method
   const data = req.method === "GET"?req.query:req.body
   const grantee  = data.grantee
   const resource = data.resource
   const readOnly = JSON.parse(data.readOnly)
-  grantPermission(granter,
+  grantPermission(requester,
     grantee, resource, readOnly, (err, success, message)=>{
     let msg = message
     if (err) {
       success = false
       msg =  err
     }
-    const r ={   operation: 'grant',
-                  granter: granter,
-                  grantee: grantee,
-                  resource: resource,
-                  readOnly: readOnly,
-                  success: success,
-                  msg: msg
-               }
+    const r ={ operation: 'grant',
+               requester: requester,
+               grantee: grantee,
+               resource: resource,
+               readOnly: readOnly,
+               success: success,
+               msg: msg }
     res.jsonp(r)
   })
 }
@@ -407,17 +406,17 @@ function grant(req, res) {
 // route for revoke
 function revoke(req, res) {
   const data = req.method === "GET"?req.query:req.body
-  const granter = req.user
+  const requester = req.user
   const grantee  = data.grantee
   const resource = data.resource
   const readOnly = JSON.parse(data.readOnly)
 
-  if (!granter) {
+  if (!requester) {
     res.jsonp({success:false, msg: 'user is not authenticated' })
     return
   }
 
-  revokePermission(granter,
+  revokePermission(requester,
                    grantee,
                    resource,
                    readOnly, (err, success, message)=>{
@@ -427,7 +426,7 @@ function revoke(req, res) {
       msg = err
     }
     const r ={  operation: 'revoke',
-                granter: granter,
+                requester: requester,
                 grantee: grantee,
                 resource: resource,
                 readOnly: readOnly,
@@ -537,8 +536,7 @@ function allResources(req, res) {
   readAllResourcesForUser(req.user, (err, items) => {
     const r = {success: false,
                operation: 'get all resource',
-               requestor: req.user
-              }
+               requester: req.user}
     if(err) {
       r.error = err
     }
@@ -558,8 +556,7 @@ function resource(req, res) {
   readResource(user, resourceName, (err, data) => {
     const r = {success: false,
                operation: 'get resource',
-               requestor: req.user
-              }
+               requester: req.user}
     if(err) {
       r.error = err
     }
