@@ -179,6 +179,7 @@ describe('<Unit Test grant>', function() {
           if(!r.success) {
             should.fail('cannot revoke')
           }
+          r.granter.should.equal('me')
           done()
         }
       }
@@ -207,6 +208,7 @@ describe('<Unit Test grant>', function() {
           if(!r.success) {
             should.fail('cannot grant')
           }
+          r.granter.should.equal('me')
           done()
         }
       }
