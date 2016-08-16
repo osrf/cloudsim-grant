@@ -5,7 +5,7 @@ const jstoken = require("./token")
 const model = require("./model")
 
 // when true, log output is suppressed
-const noLog = false
+const noLog = true
 
 // log to console
 // @s string to log
