@@ -5,7 +5,7 @@ const jstoken = require("./token")
 const model = require("./model")
 
 // when true, log output is suppressed
-const noLog = true
+const noLog = false
 
 // log to console
 // @s string to log
@@ -17,6 +17,11 @@ function log(s) {
 
 // the resources data structure
 let resources = {}
+
+exports.dump = function () {
+  let s = JSON.stringify(resources, null, 3)
+  console.log('\n\nCLOUSDSIM GRANT DUMP\n',s,'\n-----\n')
+}
 
 // Initialization
 // @adminUser: the initial username, owner of the first resource
@@ -63,11 +68,12 @@ function loadPermissions(adminUser, resources, cb) {
         // add each of the original resource
         setResource(adminUser, resourceName, resourceData, callback)
       }
+
     }
     // put the data back
     for (let i=0; i < items.length; i++) {
       const item = items[i]
-      log('  ' + i + '] ' + JSON.stringify(item))
+      log('  ' + i + '/' + items.length  +  ' ] ' + JSON.stringify(item))
       switch (item.operation) {
         case 'set': {
           log('set')
@@ -123,13 +129,11 @@ function setResource(me, resource, data, cb) {
     }
     else {
       // brand new resource
+      const permissions = {}
+      permissions[me] = {readOnly: false}
       resources[resource] = {
         data: data,
-        permissions: {
-          me: {
-            readOnly: false
-          }
-        }
+        permissions: permissions
       }
     }
   }
@@ -310,8 +314,8 @@ function revokePermission (me, user, resource, readOnly, cb) {
       // Is read only, revoking read only
       if ((readOnly == true) && (current.readOnly == true))
       {
-        resourceUsers.splice(resourceUsers.indexOf(current), 1)
-        const msg = '"' + user
+        delete resources[resource].permissions[user]
+        let msg = '"' + user
            + '" is no longer authorized for "read only" for "'
            + resource + '"'
         cb(null, true, msg)
@@ -342,7 +346,7 @@ function revokePermission (me, user, resource, readOnly, cb) {
         return
       }
 
-      cb("Bad bad widget, something went wrong")
+      cb("something went wrong")
       return;
     }
 
