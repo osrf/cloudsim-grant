@@ -161,7 +161,14 @@ describe('<Unit Test grant>', function() {
           should.fail(e)
         else {
           resource.data.slots.should.equal(4, 'not updated')
-          resource.permissions[0].permissions.readOnly.should.equal(false, 'not shared')
+          resource.name.should.equal('toaster', 'wrong resource')
+          resource.permissions.length.should.equal(2, 'wrong number of permissions')
+
+          resource.permissions[0].username.should.equal('joe')
+          resource.permissions[0].permissions.readOnly.should.equal(false)
+
+          resource.permissions[1].username.should.equal('me')
+          resource.permissions[1].permissions.readOnly.should.equal(false)
           done()
         }
       })

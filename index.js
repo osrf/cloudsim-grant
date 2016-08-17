@@ -588,7 +588,6 @@ function resource(req, res) {
     }
     else {
       r.success = true
-//      r.resource = resourceName
       r.result = data
     }
     res.jsonp(r)
