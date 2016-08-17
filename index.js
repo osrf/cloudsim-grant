@@ -425,10 +425,6 @@ function revoke(req, res) {
   })
 }
 
-function jlog(s, msg) {
-  console.log('jlog>',msg, JSON.stringify(s, null, 2))
-}
-
 /// user: the requester... his permissions will be first
 /// returns nothing if user has no access
 function copyAndFormatResourceForOutput(user, resourceName) {
