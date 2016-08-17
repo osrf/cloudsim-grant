@@ -341,18 +341,15 @@ function isAuthorizedSync(user, resourceName, readOnly) {
 
   const resource = resources[resourceName]
   if (!resource) {
-//console.log('NO 1', user, resourceName)
     return false
   }
   const permissions  = resource.permissions
   const current = permissions[user]
   if (!current) {
-//console.log('NO 2', user, resourceName)
     return false
   }
   // not enough permission
   if(current.readOnly && readOnly == false) {
-//console.log('NO 3', user, resourceName)
     return false
   }
   // user in the list, with enough permissions
