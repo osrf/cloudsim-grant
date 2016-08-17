@@ -178,25 +178,6 @@ function updateResource(me, resource, data, cb) {
   })
 }
 
-function readResource(me, resource, cb) {
-  if(!resources[resource]) {
-    cb('"' + resource + '" does not exist')
-    return
-  }
-  isAuthorized(me, resource, true, (err, authorized) => {
-    if(authorized) {
-      // deep copy of the resource
-      const res = JSON.parse(JSON.stringify(resources[resource]))
-      cb(null, res)
-      return
-    }
-    else {
-      cb("not authorized")
-      return
-    }
-  })
-}
-
 function grantPermission(me, user, resource, readOnly, cb) {
 
   const p = JSON.stringify(resources, null, 2)
@@ -441,18 +422,59 @@ function revoke(req, res) {
   })
 }
 
+/// user: the requester... his permissions will be first
+/// returns nothing if user has no access
+function copyAndFormatResourceForOutput(user, resourceName) {
+
+  // check for permission (readOnly)
+  if (!isAuthorizedSync(user, resourceName, true)) {
+    return null
+  }
+  const dbInfo = resources[resourceName]
+  const data = dbInfo.data
+  const name = resourceName
+  const permissionDict = dbInfo.permissions
+  const requesterPermissions = dbInfo.permissions[user]
+  // by convention, the first permission is the requester's
+  const permissions = [{username: user, permissions: requesterPermissions}]
+  for (let username in permissionDict) {
+    const perms = permissionDict[username]
+    if (user != username)
+      permissions.push({username: username, permissions: perms})
+  }
+  const r =  {
+    name: name,
+    data: data,
+    permissions: permissions,
+  }
+  // prevent modification of data by the caller
+  const clone = JSON.parse(JSON.stringify(r))
+  return clone
+}
+
+/// Get a single resource, including data and permissions
+/// user The requester user.
+function readResource(user, resourceName, cb) {
+  const resource = resources[resourceName]
+  if(!resource) {
+    cb('"' + resourceName + '" does not exist')
+    return
+  }
+  const data = copyAndFormatResourceForOutput(user, resourceName)
+  if (!data) {
+    cb("not authorized for resource")
+    return
+  }
+  cb(null, data)
+}
+
 function readAllResourcesForUser(user, cb) {
   const items =[]
   for (let res in resources) {
     if (resources.hasOwnProperty(res)) {
-      // check for permission (readOnly)
-      if (isAuthorizedSync(user, res, true)) {
-        const data = JSON.parse(JSON.stringify(resources[res]))
-        // add the name in each result
-        data.id = res
-        // this resource is available
-        log('\n', JSON.stringify(data,null,2))
-        items.push(data)
+      const resource = copyAndFormatResourceForOutput(user, res)
+      if (resource) {
+        items.push(resource)
       }
     }
   }
@@ -566,7 +588,6 @@ function resource(req, res) {
     }
     else {
       r.success = true
-      r.resource = resourceName
       r.result = data
     }
     res.jsonp(r)
