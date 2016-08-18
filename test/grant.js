@@ -22,16 +22,15 @@ describe('<Unit Test grant>', function() {
   before(function(done) {
       model.clearDb()
       token.signToken({username: 'me'}, (e, tok)=>{
-        console.log('token signed for user "me"')
         if(e) {
-          console.log('sign error: ' + e)
+          should.fail(e)
         }
         meToken = tok
         done()
       })
   })
 
-  describe('adding and sharing a resource:', function() {
+  describe('Toaster sharing:', function() {
     it('should have an empty db', (done) => {
       grantjs.model.clearDb()
       done()
@@ -56,11 +55,14 @@ describe('<Unit Test grant>', function() {
 
     it('db should have the toaster', (done) => {
       grantjs.readResource('me', 'toaster', (e, resource ) =>{
-        if(e)
+        if(e) {
           should.fail(e)
+        }
         else {
           resource.data.slots.should.equal(2, 'no data')
-          resource.permissions['me'].readOnly.should.equal(false, 'me not owner!')
+          const mePerm = resource.permissions[0]
+          mePerm.username.should.equal('me', 'Me not owner')
+          mePerm.permissions.readOnly.should.equal(false, 'me not owner!')
           done()
         }
       })
@@ -78,7 +80,7 @@ describe('<Unit Test grant>', function() {
               should.fail('toaster not in all resources')
             }
             r.result.length.should.equal(1)
-            r.result[0].id.should.equal('toaster')
+            r.result[0].name.should.equal('toaster')
             done()
           }
        }
@@ -116,7 +118,7 @@ describe('<Unit Test grant>', function() {
             if(!r.success) {
               should.fail('no toaster in resource route')
             }
-            r.resource.should.equal('toaster')
+            r.result.name.should.equal('toaster')
             r.result.data.slots.should.equal(2)
             done()
           }
@@ -199,7 +201,14 @@ describe('<Unit Test grant>', function() {
           should.fail(e)
         else {
           resource.data.slots.should.equal(4, 'not updated')
-          resource.permissions['joe'].readOnly.should.equal(false, 'not shared')
+          resource.name.should.equal('toaster', 'wrong resource')
+          resource.permissions.length.should.equal(2, 'wrong number of permissions')
+
+          resource.permissions[0].username.should.equal('joe')
+          resource.permissions[0].permissions.readOnly.should.equal(false)
+
+          resource.permissions[1].username.should.equal('me')
+          resource.permissions[1].permissions.readOnly.should.equal(false)
           done()
         }
       })
