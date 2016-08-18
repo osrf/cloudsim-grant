@@ -85,6 +85,26 @@ describe('<Unit Test grant>', function() {
        grantjs.allResources(req, response)
     })
 
+    it('creator should have access to resource', (done) => {
+       const req = {
+                     user: 'me',
+                   }
+
+       const res = class ServerResponse {}
+
+       const owns = grantjs.ownsResource("toaster", false)
+       owns(req, res, ()=> {
+
+        should.exist(req.user)
+        req.user.should.equal('me')
+
+        should.exist(req.resourceName)
+        req.resourceName.should.equal('toaster')
+
+        done()
+      })
+    })
+
     it('the resource can be obtain via a route', (done) => {
        const req = {
                     user: 'me',
@@ -144,6 +164,26 @@ describe('<Unit Test grant>', function() {
       })
     })
 
+    it('joe should have write access to resource', (done) => {
+       const req = {
+                     user: 'joe',
+                   }
+
+       const res = {}
+
+       const owns = grantjs.ownsResource("toaster", false)
+       owns(req, res, ()=> {
+
+        should.exist(req.user)
+        req.user.should.equal('joe')
+
+        should.exist(req.resourceName)
+        req.resourceName.should.equal('toaster')
+
+        done()
+      })
+    })
+
     it('should be possible to update the toaster (add slots)', (done) => {
       grantjs.updateResource('me', 'toaster', {slots:4}, (e) =>{
         if(e)
@@ -194,6 +234,30 @@ describe('<Unit Test grant>', function() {
       })
     })
 
+    it('joe should not have write access to resource', (done) => {
+       const req = {
+                     user: 'joe',
+                   }
+
+       let res =  {
+         status : function(number) {
+           number.should.equal(401)
+           return this
+         },
+         jsonp: function(data) {
+          data.success.should.equal(false)
+          should.exist(data.error)
+          done()
+         }
+
+       }
+
+       const owns = grantjs.ownsResource("toaster", false)
+       owns(req, res, ()=> {
+         should.fail()
+       })
+    })
+
     it('should be possible to share the toaster with jack', (done) => {
       const req = {
                     user: 'me',
@@ -220,6 +284,32 @@ describe('<Unit Test grant>', function() {
       grantjs.isAuthorized('jack', 'toaster', false, (e, authorized) => {
         should.not.exist(e)
         authorized.should.equal(false)
+        done()
+      })
+    })
+
+    it('jack should have read access to resource', (done) => {
+       const req = {
+                     user: 'jack',
+                   }
+
+       let res =  {
+         status : function(number) {
+           console.log('status!!',number)
+
+         }
+
+       }
+
+       const owns = grantjs.ownsResource("toaster", true)
+       owns(req, res, ()=> {
+
+        should.exist(req.user)
+        req.user.should.equal('jack')
+
+        should.exist(req.resourceName)
+        req.resourceName.should.equal('toaster')
+
         done()
       })
     })
