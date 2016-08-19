@@ -4,12 +4,12 @@ const redis = require("redis")
 const client = redis.createClient()
 
 // when true, most output is suppressed
-const noLog = true
+exports.showLog = false
 
 // log to console
 // @s string to log
 function log(s) {
-  if (!noLog) {
+  if (exports.showLog) {
     console.log('grant:db> ', s)
   }
 }
@@ -103,7 +103,7 @@ function readDb(cb) {
 // erases the list of all db operations
 function clearDb() {
   client.del(listName)
-  log(listName + ' database deleted')
+  console.log(listName + ' database deleted')
 }
 
 // this is a convenient method to get the next id for a

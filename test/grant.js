@@ -1,7 +1,7 @@
 'use strict'
 
 const should = require('should')
-const grantjs = require('../index')
+const csgrant = require('../index')
 const model = require('../model')
 const token = require('../token')
 const util = require('util')
@@ -10,7 +10,7 @@ const util = require('util')
 // we need keys for this test
 const keys = token.generateKeys()
 token.initKeys(keys.public, keys.private)
-
+csgrant.showLog = false
 
 let meTokenData = {username:'me'}
 let meToken
@@ -32,7 +32,7 @@ describe('<Unit Test grant>', function() {
 
   describe('Toaster sharing:', function() {
     it('should have an empty db', (done) => {
-      grantjs.model.clearDb()
+      csgrant.model.clearDb()
       done()
     })
     it('should authenticate', (done) => {
@@ -40,21 +40,21 @@ describe('<Unit Test grant>', function() {
         headers : {authorization: meToken}
       }
       const res = {}
-      grantjs.authenticate(req, res, ()=> {
+      csgrant.authenticate(req, res, ()=> {
         should.exist(req.user)
         req.user.should.equal('me')
         done()
       })
     })
     it('should be possible to add a toaster', (done) => {
-      grantjs.createResource('me', 'toaster', {slots:2}, (e)=>{
+      csgrant.createResource('me', 'toaster', {slots:2}, (e)=>{
         if(e) should.fail(e)
         done()
       })
     })
 
     it('db should have the toaster', (done) => {
-      grantjs.readResource('me', 'toaster', (e, resource ) =>{
+      csgrant.readResource('me', 'toaster', (e, resource ) =>{
         if(e) {
           should.fail(e)
         }
@@ -84,7 +84,7 @@ describe('<Unit Test grant>', function() {
             done()
           }
        }
-       grantjs.allResources(req, response)
+       csgrant.allResources(req, response)
     })
 
     it('creator should have access to resource', (done) => {
@@ -94,7 +94,7 @@ describe('<Unit Test grant>', function() {
 
        const res = class ServerResponse {}
 
-       const owns = grantjs.ownsResource("toaster", false)
+       const owns = csgrant.ownsResource("toaster", false)
        owns(req, res, ()=> {
 
         should.exist(req.user)
@@ -123,7 +123,7 @@ describe('<Unit Test grant>', function() {
             done()
           }
        }
-       grantjs.resource(req, response)
+       csgrant.resource(req, response)
     })
 
 
@@ -146,12 +146,12 @@ describe('<Unit Test grant>', function() {
           done()
         }
       }
-      grantjs.grant(req, response)
+      csgrant.grant(req, response)
 
     })
 
     it('the toaster should still be accessible', (done) => {
-      grantjs.isAuthorized('me', 'toaster', true, (e, authorized) => {
+      csgrant.isAuthorized('me', 'toaster', true, (e, authorized) => {
         should.not.exist(e)
         authorized.should.equal(true)
         done()
@@ -159,7 +159,7 @@ describe('<Unit Test grant>', function() {
     })
 
     it('joe should also have access to the toaster', (done) => {
-      grantjs.isAuthorized('joe', 'toaster', true, (e, authorized) => {
+      csgrant.isAuthorized('joe', 'toaster', true, (e, authorized) => {
         should.not.exist(e)
         authorized.should.equal(true)
         done()
@@ -173,7 +173,7 @@ describe('<Unit Test grant>', function() {
 
        const res = {}
 
-       const owns = grantjs.ownsResource("toaster", false)
+       const owns = csgrant.ownsResource("toaster", false)
        owns(req, res, ()=> {
 
         should.exist(req.user)
@@ -187,7 +187,7 @@ describe('<Unit Test grant>', function() {
     })
 
     it('should be possible to update the toaster (add slots)', (done) => {
-      grantjs.updateResource('me', 'toaster', {slots:4}, (e) =>{
+      csgrant.updateResource('me', 'toaster', {slots:4}, (e) =>{
         if(e)
           should.fail(e)
         else
@@ -196,7 +196,7 @@ describe('<Unit Test grant>', function() {
     })
 
     it('Joe should now see the 4 slots of the toaster', (done) => {
-      grantjs.readResource('joe', 'toaster', (e, resource ) =>{
+      csgrant.readResource('joe', 'toaster', (e, resource ) =>{
         if(e)
           should.fail(e)
         else {
@@ -232,11 +232,11 @@ describe('<Unit Test grant>', function() {
           done()
         }
       }
-      grantjs.revoke(req, response)
+      csgrant.revoke(req, response)
     })
 
     it('joe should not have access to the toaster', (done) => {
-      grantjs.isAuthorized('joe', 'toaster', true, (e, authorized) => {
+      csgrant.isAuthorized('joe', 'toaster', true, (e, authorized) => {
         should.not.exist(e)
         authorized.should.equal(false)
         done()
@@ -261,7 +261,7 @@ describe('<Unit Test grant>', function() {
 
        }
 
-       const owns = grantjs.ownsResource("toaster", false)
+       const owns = csgrant.ownsResource("toaster", false)
        owns(req, res, ()=> {
          should.fail()
        })
@@ -285,12 +285,12 @@ describe('<Unit Test grant>', function() {
           done()
         }
       }
-      grantjs.grant(req, response)
+      csgrant.grant(req, response)
 
     })
 
     it('jack should not have write access to the toaster', (done) => {
-      grantjs.isAuthorized('jack', 'toaster', false, (e, authorized) => {
+      csgrant.isAuthorized('jack', 'toaster', false, (e, authorized) => {
         should.not.exist(e)
         authorized.should.equal(false)
         done()
@@ -310,7 +310,7 @@ describe('<Unit Test grant>', function() {
 
        }
 
-       const owns = grantjs.ownsResource("toaster", true)
+       const owns = csgrant.ownsResource("toaster", true)
        owns(req, res, ()=> {
 
         should.exist(req.user)
@@ -324,7 +324,7 @@ describe('<Unit Test grant>', function() {
     })
 
     it('should be possible to remove the toaster', (done) => {
-      grantjs.deleteResource('me', 'toaster', (e)=>{
+      csgrant.deleteResource('me', 'toaster', (e)=>{
         if(e) should.fail(e)
         done()
       })
