@@ -3,6 +3,7 @@
 const util = require("util")
 const jstoken = require("./token")
 const model = require("./model")
+const download =  require('./download')
 
 // when false, log output is suppressed
 exports.showLog = false
@@ -489,7 +490,12 @@ function authenticate(req, res, next) {
   // debug authentication issues:
   // console.log('authenticate headers:', req.headers)
   // get token
-  const token = req.headers.authorization
+  let token = req.headers.authorization
+  if (!token) {
+    if (req.method == 'GET')
+      token = req.query.token
+  }
+
   if (!token) {
     res.status(401).jsonp('{"error":"No identity token provided"}')
     // res.jsonp({success: false, error: "missing token"})
@@ -509,7 +515,6 @@ function authenticate(req, res, next) {
     req.user = decoded.username
     req.decoded = decoded
     // debug: user has been authenticated
-    // console.log('authenticated user ' + req.user)
     log(req.user,'authenticated')
     next()
   })
@@ -549,10 +554,20 @@ function ownsResource(resource, readOnly) {
            "error": msg
         })
       }
-      log('Authorized resource: ' + resourceName )
-      req.resourceName = resourceName
-      next()
-    })
+      // read the resource, keep a local copy in the req
+      readResource(user, resourceName, (err, data) => {
+        if(err) {
+          return res.status(500).jsonp({
+            "success": false,
+            "error": err
+          })
+        }
+        log('Authorized resource: ' + resourceName )
+        req.resourceData = data
+        req.resourceName = resourceName
+        next()
+      })
+    }) // isAuthorized
   }
 }
 
@@ -575,23 +590,36 @@ function allResources(req, res) {
 }
 
 // route to get a single resource with data and permissions
-// assumes that req.user and req.resourceName
+// assumes that req.user, req.resourceName and req.resourceData exist
 function resource(req, res) {
+  const data = req.resourceData
   const resourceName = req.resourceName
   const user = req.user
-  readResource(user, resourceName, (err, data) => {
-    const r = {success: false,
-               operation: 'get resource',
-               requester: req.user}
-    if(err) {
-      r.error = err
-    }
-    else {
-      r.success = true
-      r.result = data
-    }
-    res.jsonp(r)
-  })
+
+  const r = {success: false,
+             operation: 'get resource',
+             requester: user,
+             resource: resourceName
+            }
+  if(!user) {
+    r.error = "Authentication missing"
+    return res.status(500).jsonp(r)
+  }
+
+  if(!resourceName) {
+    r.error = "resource not specified"
+    return res.status(500).jsonp(r)
+  }
+
+  if(!req.resourceData) {
+    r.error = "resource data not found in request"
+    return res.status(500).jsonp(r)
+  }
+
+  r.success = true
+  r.result = data
+
+  res.jsonp(r)
 }
 
 // database setup
@@ -627,3 +655,4 @@ exports.verifyToken = jstoken.verifyToken
 exports.token = jstoken
 exports.model = model
 
+exports.downloadFilePath = download.downloadFilePath

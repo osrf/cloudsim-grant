@@ -110,10 +110,10 @@ describe('<Unit Test grant>', function() {
     it('the resource can be obtain via a route', (done) => {
        const req = {
                     user: 'me',
-                    resourceName: 'toaster'
+                    resourceName: 'toaster',
                     }
 
-       const response = {
+       const res = {
           jsonp: function (r) {
             if(!r.success) {
               should.fail('no toaster in resource route')
@@ -123,9 +123,14 @@ describe('<Unit Test grant>', function() {
             done()
           }
        }
-       csgrant.resource(req, response)
-    })
+       const owns = csgrant.ownsResource("toaster", false )
+       // we call the middleware, mocking the next() call to invoke
+       // csgrant.resource with the req and res
+       owns(req, res, ()=>{
+        csgrant.resource(req, res)
+       })
 
+    })
 
 
     it('should be possible to share the toaster with joe', (done) => {
@@ -137,6 +142,7 @@ describe('<Unit Test grant>', function() {
                       resource: 'toaster',
                       readOnly: false
                     }
+
                   }
       const response = {
         jsonp: function (r) {
