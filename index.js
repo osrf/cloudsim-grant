@@ -621,7 +621,7 @@ function resource(req, res) {
   }
 
   r.success = true
-  r.result = req.data
+  r.result = data
 
   res.jsonp(r)
 }
