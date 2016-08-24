@@ -1,3 +1,7 @@
+'use stric'
+
+const fs = require('fs')
+const path = require('path')
 
 // middleware function to download
 // a single file.
