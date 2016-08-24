@@ -6,7 +6,7 @@
 //   type: the MIME type
 //   name: the name of the file, as seen by the browser
 exports.downloadFilePath = function (req, res) {
-console.log('downloadFilePath')
+
   if(!req.fileInfo) {
     const msg = 'Internal Server Error: file informatino not in request'
     console.log(msg, filePath)
