@@ -1,14 +1,14 @@
 
 // middleware function to download
 // a single file.
-// req.fileInfo should be populated with
+// req.fileInfo is either a string or a structure which contains:
 //   path: full path of the file
 //   type: the MIME type
 //   name: the name of the file, as seen by the browser
 exports.downloadFilePath = function (req, res) {
 
   if(!req.fileInfo) {
-    const msg = 'Internal Server Error: file informatino not in request'
+    const msg = 'Internal Server Error: file information not in request'
     console.log(msg, filePath)
     return res.satus(500).end(msg)
   }
@@ -31,8 +31,7 @@ exports.downloadFilePath = function (req, res) {
         }
     } else {
       res.setHeader('Content-type', 'application/zip')
-      const f = path.basename(filePath)
-      res.setHeader('Content-disposition', 'attachment; filename=' + f)
+      res.setHeader('Content-disposition', 'attachment; filename=' + dName)
       res.setHeader('Content-Length', stat.size)
       var stream = fs.createReadStream(filePath);
       stream.pipe(res);

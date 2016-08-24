@@ -556,10 +556,6 @@ function ownsResource(resource, readOnly) {
       }
       // read the resource, keep a local copy in the req
       readResource(user, resourceName, (err, data) => {
-        const r = {success: false,
-               operation: 'get resource',
-               requester: req.user}
-
         if(err) {
           return res.status(500).jsonp({
             "success": false,
