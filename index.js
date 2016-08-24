@@ -4,13 +4,13 @@ const util = require("util")
 const jstoken = require("./token")
 const model = require("./model")
 
-// when true, log output is suppressed
-const noLog = true
+// when false, log output is suppressed
+exports.showLog = false
 
 // log to console
 // @s string to log
 function log(s) {
-  if (!noLog) {
+  if (exports.showLog) {
     console.log('grant> ', s)
   }
 }
