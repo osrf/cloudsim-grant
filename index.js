@@ -3,6 +3,7 @@
 const util = require("util")
 const jstoken = require("./token")
 const model = require("./model")
+const download =  require('./download')
 
 // when false, log output is suppressed
 exports.showLog = false
@@ -658,3 +659,4 @@ exports.verifyToken = jstoken.verifyToken
 exports.token = jstoken
 exports.model = model
 
+exports.downloadFilePath = download.downloadFilePath
