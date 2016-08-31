@@ -504,11 +504,18 @@ function authenticate(req, res, next) {
   // decrypt and verify token
   jstoken.verifyToken(token, (err, decoded) => {
     if(err) {
-      res.jsonp({success:false, error: "invalid token: " + err})
+      let msg = '' + err
+      msg = msg.trim()
+
+      if (err.message === "PEM_read_bio_PUBKEY failed"){
+        return res.status(500).jsonp({success:false,
+          error: 'public auth key is missing'})
+      }
+      res.status(401).jsonp({success:false, error: "invalid token: " + err})
       return
     }
     if(!decoded.username) {
-      res.jsonp({"success":false, "error":"token must contain username"})
+      res.status(401).jsonp({"success":false, "error":"token must contain username"})
       return
     }
     // success.
@@ -571,22 +578,54 @@ function ownsResource(resource, readOnly) {
   }
 }
 
-// route that returns all relevant resources for a user
-// assumes that req.user is set (authenticate middleware)
-function allResources(req, res) {
+// This middelware sets req.userResources to contain all
+// the resources available to a user. That user must be
+// specified in req.user
+function userResources(req, res, next) {
+
   readAllResourcesForUser(req.user, (err, items) => {
     const r = {success: false,
                operation: 'get all resource',
                requester: req.user}
     if(err) {
-      r.error = err
+      return res.status(500).jsonp({
+                                     success: false,
+                                     "error": err
+                                   })
     }
-    else {
-      r.success = true
-      r.result = items
-    }
-    res.jsonp(r)
+    req.userResources = items
+    next()
   })
+}
+
+// route that returns all relevant resources for a user
+// assumes that:
+//    req.user is set (authenticate middleware)
+//    req.userResources contains the resources for the user
+function allResources(req, res) {
+  const user = req.user
+  const resources = req.userResources
+
+  const r = {success: false,
+             operation: 'get resources for user',
+             requester: user,
+             resource: resources
+            }
+
+  if(!user) {
+    r.error = "Authentication missing"
+    return res.status(500).jsonp(r)
+  }
+
+  if(!resources) {
+    r.error = "resources not specified"
+    return res.status(500).jsonp(r)
+  }
+
+  r.success = true
+  r.result = resources
+
+  res.jsonp(r)
 }
 
 // route to get a single resource with data and permissions
@@ -622,18 +661,30 @@ function resource(req, res) {
   res.jsonp(r)
 }
 
+// this returns a copy of the internal database.
+function copyInternalDatabase() {
+  const res = JSON.parse(JSON.stringify(resources))
+  return res
+}
+
+
+
 // database setup
 exports.init = init
+exports.copyInternalDatabase = copyInternalDatabase
 
 // routes
 exports.grant = grant
 exports.revoke = revoke
-exports.allResources = allResources
-exports.resource = resource
+exports.copyInternalDatabase = copyInternalDatabase
 
 // middleware
+exports.userResources = userResources
 exports.authenticate = authenticate
 exports.ownsResource = ownsResource
+// middleware to write responses
+exports.resource = resource
+exports.allResources = allResources
 
 // crud (create update read delete)
 exports.createResource = createResource
