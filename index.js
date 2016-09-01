@@ -609,7 +609,6 @@ function allResources(req, res) {
   const r = {success: false,
              operation: 'get resources for user',
              requester: user,
-             resource: resources
             }
 
   if(!user) {
@@ -618,7 +617,7 @@ function allResources(req, res) {
   }
 
   if(!resources) {
-    r.error = "resources not specified"
+    r.error = "Internal error: resources not specified"
     return res.status(500).jsonp(r)
   }
 
