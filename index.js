@@ -598,7 +598,7 @@ function userResources(req, res, next) {
   })
 }
 
-// route that returns all relevant resources for a user
+// route that returns all shared resources for a user
 // assumes that:
 //    req.user is set (authenticate middleware)
 //    req.userResources contains the resources for the user
