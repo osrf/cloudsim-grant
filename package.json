@@ -13,13 +13,13 @@
   "author": "hugo@osrfoundation.org",
   "license": "ISC",
   "devDependencies": {
-    "mocha": "^2.5.1",
-    "should": "^8.4.0"
+    "mocha": "^3.0.2",
+    "should": "^11.1.0"
   },
   "dependencies": {
     "dotenv": "^2.0.0",
     "jsonwebtoken": "^7.1.9",
-    "node-rsa": "^0.3.4",
+    "node-rsa": "^0.4.1",
     "redis": "^2.6.2"
   }
 }
