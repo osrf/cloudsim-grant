@@ -75,8 +75,13 @@ describe('<Unit Test grant>', function() {
                     }
 
        const response = {
+          status: function(st) {
+            st.should.equal(200)
+            return this
+          },
           jsonp: function (r) {
             if(!r.success) {
+              console.log('error:', r)
               should.fail('toaster not in all resources')
             }
             r.result.length.should.equal(1)
@@ -84,7 +89,11 @@ describe('<Unit Test grant>', function() {
             done()
           }
        }
-       csgrant.allResources(req, response)
+       // combine 2 middleware
+       csgrant.userResources(req, response, ()=>{
+         req.userResources.length.should.equal(1)
+         csgrant.allResources(req, response)
+       })
     })
 
     it('creator should have access to resource', (done) => {

@@ -74,5 +74,7 @@ exports.initKeys(process.env.CLOUDSIM_AUTH_PUB_KEY,
                  process.env.CLOUDSIM_AUTH_PRIV_KEY,
                  process.env.CLOUDSIM_AUTH_URL)
 
-
+if (!process.env.CLOUDSIM_AUTH_PUB_KEY || process.env.CLOUDSIM_AUTH_PUB_KEY === "") {
+  console.warn('warning: CLOUDSIM_AUTH_PUB_KEY is empty!')
+}
 
