@@ -2,6 +2,8 @@
 
 [![npm version](https://badge.fury.io/js/cloudsim-grant.svg)](https://badge.fury.io/js/cloudsim-grant)
 
+[![Dependency Status](https://www.versioneye.com/user/projects/57ca2b3469d9490042f7322b/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/57ca2b3469d9490042f7322b)
+
 # README #
 
 This is a grant / revoke permission module for cloudsim
