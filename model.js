@@ -1,7 +1,12 @@
 'use strict'
 
 const redis = require("redis")
-const client = redis.createClient()
+
+var options = {};
+if (process.env.CLOUDSIM_GRANT_DB)
+  options.url = 'redis://' + process.env.CLOUDSIM_GRANT_DB;
+
+const client = redis.createClient(options)
 
 // when true, most output is suppressed
 exports.showLog = false
