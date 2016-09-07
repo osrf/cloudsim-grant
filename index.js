@@ -21,7 +21,10 @@ let resources = {}
 
 exports.dump = function () {
   let s = JSON.stringify(resources, null, 3)
-  console.log('\n\nCLOUSDSIM GRANT DUMP\n',s,'\n-----\n')
+  console.log('\n\nCLOUSDSIM GRANT DUMP\n',
+    '  DB:',model.listName,
+    '\n',s,
+    '\n-----\n')
 }
 
 // Initialization
@@ -335,6 +338,8 @@ function revokePermission (me, user, resource, readOnly, cb) {
   })
 }
 
+// this is the synchronous version of isAuthorized. It returns
+// true if the user has access to the specified resource
 function isAuthorizedSync(user, resourceName, readOnly) {
 
   if(!user)
