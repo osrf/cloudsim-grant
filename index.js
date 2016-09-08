@@ -62,7 +62,6 @@ function loadPermissions(adminUser, resources, cb) {
     log('data loaded, clearing db')
     // remove the data in the db
     model.clearDb()
-
     // if the datbase was empty, we need to populate it with the
     // initial resources. Otherwise, they are first in the list
     if (items.length == 0) {
