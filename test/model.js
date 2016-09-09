@@ -74,4 +74,16 @@ describe('<Unit Test grant database (model.js)>', function() {
       })
     })
   })
+
+  describe('connecting to database using url:', function(){
+    it('should be able to connect to a db url', (done) => {
+      model.setDatabaseURL('127.0.0.1');
+      model.readDb((err, items)=>{
+        if(err)
+          should.fail(err)
+        should(items.length).be.eql(4, 'connection' )
+        done()
+      })
+    })
+  })
 })

@@ -2,11 +2,7 @@
 
 const redis = require("redis")
 
-var options = {};
-if (process.env.CLOUDSIM_GRANT_DB)
-  options.url = 'redis://' + process.env.CLOUDSIM_GRANT_DB;
-
-const client = redis.createClient(options)
+let client = redis.createClient()
 
 // when true, most output is suppressed
 exports.showLog = false
@@ -25,6 +21,19 @@ let listName = 'cloudsim-grant'
 // set the list name
 function init(databaseName) {
   listName = databaseName
+}
+
+// connect to database using a URL
+function setDatabaseURL(url) {
+  if (!url)
+    return;
+
+  if (client)
+    client.quit()
+
+  let options = {}
+  options.url = 'redis://' + url
+  client = redis.createClient(options)
 }
 
 // Redis events
@@ -123,6 +132,7 @@ function getNextResourceId(resourceType, cb) {
 }
 
 exports.init = init
+exports.setDatabaseURL = setDatabaseURL
 exports.grant = grant
 exports.revoke = revoke
 exports.setResource = setResource
