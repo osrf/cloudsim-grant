@@ -666,7 +666,101 @@ function copyInternalDatabase() {
   return res
 }
 
+// Remove user from database. The resource is removed if the user is the only
+// one with write access to the resource, otherwise the resource permission for
+// the user is revoked
+function deleteUser(user, cb) {
 
+  // loop through the resources and examine the user permissions
+  let resourcesToDelete = []
+  let resourcesToRevoke = []
+  const items =[]
+  for (let res in resources) {
+    if (resources.hasOwnProperty(res)) {
+      if (!isAuthorizedSync(user, res, true)) {
+        continue
+      }
+
+      // remove resource only if there is no other user with write access
+      const dbInfo = resources[res]
+      const permissionDict = dbInfo.permissions
+      if (Object.keys(permissionDict).length === 1) {
+        // user is the only one with access to resource so remove it
+        resourcesToDelete.push(res)
+      }
+      else {
+        // check if other owners have write access to resource
+        let otherOwner = false
+        for (let username in permissionDict) {
+          const perms = permissionDict[username]
+          if (user != username && perms.readOnly !== true) {
+            otherOwner = true
+            break;
+          }
+        }
+        if (!otherOwner) {
+          // remove resource since user is the only one with write access
+          resourcesToDelete.push(res)
+        }
+        else {
+          // revoke user permission
+          resourcesToRevoke.push({name: res,
+              readOnly: dbInfo.permissions[user].readOnly})
+        }
+      }
+    }
+  }
+
+  // function to revoke user permission on a list of resources
+  const revokeRes = function(index, items, revokeCb) {
+    if (index === items.length) {
+      revokeCb(null)
+      return
+    }
+
+    revokePermission(user, user, items[index].name, items[index].readOnly,
+        (err, success, message) => {
+      if (err) {
+        revokeCb(err, null)
+        return;
+      }
+      revokeRes(++index, items, revokeCb)
+    })
+  }
+
+  // function to delete a list of resources
+  const deleteRes = function(index, items, deleteCb) {
+    if (index === items.length) {
+      deleteCb(null)
+      return
+    }
+
+    deleteResource(user, items[index], (err, resource) => {
+      if (err) {
+        deleteCb(err, null)
+        return;
+      }
+      deleteRes(++index, items, deleteCb)
+    })
+  }
+
+  // chain the functions to delete resources and revoke resource permissions
+  deleteRes(0, resourcesToDelete, (err) => {
+    if (err) {
+      cb(err)
+      return
+    }
+
+    revokeRes(0, resourcesToRevoke, (err) => {
+      if (err) {
+        cb(err)
+        return
+      }
+      cb(null)
+    })
+  })
+
+}
 
 // database setup
 exports.init = init
@@ -690,6 +784,7 @@ exports.createResource = createResource
 exports.readResource = readResource
 exports.updateResource = updateResource
 exports.deleteResource = deleteResource
+exports.deleteUser = deleteUser
 
 // util
 exports.isAuthorized = isAuthorized
