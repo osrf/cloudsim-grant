@@ -21,7 +21,10 @@ let resources = {}
 
 exports.dump = function () {
   let s = JSON.stringify(resources, null, 3)
-  console.log('\n\nCLOUSDSIM GRANT DUMP\n',s,'\n-----\n')
+  console.log('\n\nCLOUSDSIM GRANT DUMP\n',
+    '  DB:',model.listName,
+    '\n',s,
+    '\n-----\n')
 }
 
 // Initialization
@@ -59,7 +62,6 @@ function loadPermissions(adminUser, resources, cb) {
     log('data loaded, clearing db')
     // remove the data in the db
     model.clearDb()
-
     // if the datbase was empty, we need to populate it with the
     // initial resources. Otherwise, they are first in the list
     if (items.length == 0) {
@@ -335,6 +337,8 @@ function revokePermission (me, user, resource, readOnly, cb) {
   })
 }
 
+// this is the synchronous version of isAuthorized. It returns
+// true if the user has access to the specified resource
 function isAuthorizedSync(user, resourceName, readOnly) {
 
   if(!user)
