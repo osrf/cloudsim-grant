@@ -117,7 +117,7 @@ function readDb(cb) {
 // erases the list of all db operations
 function clearDb() {
   client.del(listName)
-  console.log(listName + ' database deleted')
+  console.log('"' + listName + '" database deleted')
 }
 
 // this is a convenient method to get the next id for a
@@ -133,6 +133,7 @@ function getNextResourceId(resourceType, cb) {
 
 exports.init = init
 exports.setDatabaseURL = setDatabaseURL
+exports.listName = listName
 exports.grant = grant
 exports.revoke = revoke
 exports.setResource = setResource
