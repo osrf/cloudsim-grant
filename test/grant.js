@@ -414,7 +414,7 @@ describe('<Unit Test grant>', function() {
       csgrant.readResource('joe', 'blender', (e, resource ) =>{
         should.exist(e)
 
-        // toaster should still be accessible since jack only has readOnly
+        // toaster should still be accessible since jack only had readOnly
         // access to this resource
         csgrant.readResource('me', 'toaster', (e, resource ) =>{
           if(e) {
