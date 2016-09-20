@@ -111,11 +111,9 @@ function loadPermissions(adminUser, resources, cb) {
   })
 }
 
-
-
 // create update delete a resource.
 //
-function setResource(me, resource, data, cb) {
+function setResourceSync(me, resource, data) {
   model.setResource(me, resource, data)
   if (!data) {
     // data is null, signifying deletion
@@ -138,7 +136,14 @@ function setResource(me, resource, data, cb) {
       }
     }
   }
-  cb(null, resources[resource])
+  return {error: null, result: resources[resource]}
+}
+
+// create update delete a resource.
+//
+function setResource(me, resource, data, cb) {
+  const result = setResourceSync(me, resource, data)
+  cb(result.error, result.result)
 }
 
 
@@ -148,6 +153,13 @@ function createResource (me, resource, data, cb) {
     return
   }
   setResource(me, resource, data, cb)
+}
+
+function deleteResourceSync (me, resource) {
+  if (resources[resource]) {
+    return setResourceSync(me, resource, null)
+  }
+  return {error: 'resource "' + resource +  '" does not exist', result: null}
 }
 
 function deleteResource (me, resource, cb) {
@@ -179,160 +191,181 @@ function updateResource(me, resource, data, cb) {
   })
 }
 
-function grantPermission(me, user, resource, readOnly, cb) {
-
+function grantPermissionSync(me, user, resource, readOnly) {
   const p = JSON.stringify(resources, null, 2)
   log('\n\nGrant:', me, user, resource, '\n', p)
 
   // Am I authorized to grant this permission
-  isAuthorized(me, resource, readOnly, (err, authorized) =>  {
-    // Error getting my authorization
-    if (err) {
-      log('grantPermission: Error getting my authorization')
-      cb(err)
+  const authorized = isAuthorizedSync(me, resource, readOnly)
+  // I'm not authorized to give this permission
+  if (!authorized) {
+    const msg = '"' + me + '" has insufficient priviledges to manage "'
+                   + user + '" access for "' + resource + '"'
+    // log('grantPermission error: ' + msg')
+    return {error: null, success: false, message: msg}
+  }
+  if (!resources[resource])
+  {
+    return {error: null, success: false, message: 'Resource "' + resource +
+        '" does not exist'}
+  }
+
+  let current = resources[resource].permissions[user]
+
+  // If user already has some authorization
+  if (current)
+  {
+    // Is already read only
+    if ((readOnly == true) && (current.readOnly == true))
+    {
+      return {error: null, success: true, message: '"' + user +
+         '" is already authorized for "read only" for "'
+         + resource + '"'}
       return
     }
-    // I'm not authorized to give this permission
-    if (!authorized) {
-      const msg = '"' + me + '" has insufficient priviledges to manage "'
-                     + user + '" access for "' + resource + '"'
-      // log('grantPermission error: ' + msg')
-      cb(null, false, msg)
-      return
-    }
-    if (!resources[resource])
+    // Is already write
+    if ((readOnly == false) && (current.readOnly == false))
     {
-      cb(null, false, 'Resource "' + resource + '" does not exist')
-      return
+      return {error: null, success: true, message: '"' + user +
+          '" is already authorized for "write" for "' + resource + '"'}
     }
-
-    let current = resources[resource].permissions[user]
-
-    // If user already has some authorization
-    if (current)
+    // Is write and we want to downgrade
+    if ((readOnly == true) && (current.readOnly == false))
     {
-      // Is already read only
-      if ((readOnly == true) && (current.readOnly == true))
-      {
-        cb(null, true, '"' + user +
-           '" is already authorized for "read only" for "'
-           + resource + '"')
-        return
-      }
-      // Is already write
-      if ((readOnly == false) && (current.readOnly == false))
-      {
-        cb(null, true, '"' + user + '" is already authorized for "write" for "'
-           + resource + '"')
-        return
-      }
-      // Is write and we want to downgrade
-      if ((readOnly == true) && (current.readOnly == false))
-      {
-        current.readOnly = true
-        cb(null, true, '"' + user + '" access for "'
-           + resource + '" has been downgraded to "read only"')
-        return
-      }
-      // Is read only and we want to upgrade
-      if ((readOnly == false) && (current.readOnly == true))
-      {
-        current.readOnly = false
-        cb(null, true, '"' + user + '" access for "'
-           + resource + '" has been upgraded to "write"')
-        return
-      }
-
-      cb("Something went wrong")
-      return;
+      current.readOnly = true
+      return {error: null, success: true, message: '"' + user + '" access for "'
+         + resource + '" has been downgraded to "read only"'}
     }
-    else
+    // Is read only and we want to upgrade
+    if ((readOnly == false) && (current.readOnly == true))
     {
-      // Grant brand new permission
-      let x = { readOnly : readOnly,
-                authority : me
-              }
-      resources[resource].permissions[user] = x
-
-      const readOnlyTxt = readOnly? "read only" : "write"
-      const msg = '"' + user + '" now has "' + readOnlyTxt +
-        '" access for "' + resource + '"'
-      // write it to the db
-      model.grant(me, user, resource, readOnly )
-      cb(null, true, msg)
+      current.readOnly = false
+      return {error: null, success: true, message: '"' + user + '" access for "'
+         + resource + '" has been upgraded to "write"'}
     }
-  })
+
+    return {error: 'something went wrong', success: false,
+        message: 'unknown error'}
+  }
+  else
+  {
+    // Grant brand new permission
+    let x = { readOnly : readOnly,
+              authority : me
+            }
+    resources[resource].permissions[user] = x
+
+    const readOnlyTxt = readOnly? "read only" : "write"
+    const msg = '"' + user + '" now has "' + readOnlyTxt +
+      '" access for "' + resource + '"'
+    // write it to the db
+    model.grant(me, user, resource, readOnly )
+    return {error: null, success: true, message: msg}
+  }
 }
 
-function revokePermission (me, user, resource, readOnly, cb) {
+
+function grantPermission(me, user, resource, readOnly, cb) {
+  const result = grantPermissionSync(me, user, resource, readOnly)
+  cb(result.error, result.success, result.message)
+}
+
+function revokePermissionSync (me, user, resource, readOnly) {
   model.revoke(me, user, resource, readOnly)
 
   // Am I authorized to revoke this permission
-  isAuthorized(me, resource, readOnly, (err, authorized) =>  {
+  const authorized = isAuthorizedSync(me, resource, readOnly)
 
-    // Error getting my authorization
-    if (err) {
-      cb(err)
-      return
-    }
-
-    // I'm not authorized to give this permission
-    if (!authorized) {
-      cb(null, false, '"' + me + '" has insufficient priviledges to manage "'
-                     + user + '" access for "' + resource + '"')
-      return
-    }
-    const current = resources[resource].permissions[user]
-    // If user has no authorization
-    if (!current)
+  // I'm not authorized to give this permission
+  if (!authorized) {
+    return {error: null, success: false, message: '"' + me +
+        '" has insufficient priviledges to manage "' + user +
+        '" access for "' + resource + '"'}
+  }
+  const current = resources[resource].permissions[user]
+  // If user has no authorization
+  if (!current)
+  {
+    const msg = '"' + user + '" has no authorization for "'
+       + resource + '" so nothing changed.'
+    return {error: null, success: true, message: msg}
+  }
+  else
+  {
+    let result
+    // Is read only, revoking read only
+    if ((readOnly == true) && (current.readOnly == true))
     {
-      const msg = '"' + user + '" has no authorization for "'
-         + resource + '" so nothing changed.'
-      cb(null, true, msg)
-      return
+      delete resources[resource].permissions[user]
+      let msg = '"' + user
+         + '" is no longer authorized for "read only" for "'
+         + resource + '"'
+      result = {error: null, success: true, message: msg}
     }
-    else
+    // Is write, revoking write
+    if ((readOnly == false) && (current.readOnly == false))
     {
-      // Is read only, revoking read only
-      if ((readOnly == true) && (current.readOnly == true))
-      {
-        delete resources[resource].permissions[user]
-        let msg = '"' + user
-           + '" is no longer authorized for "read only" for "'
-           + resource + '"'
-        cb(null, true, msg)
-        return
-      }
-      // Is write, revoking write
-      if ((readOnly == false) && (current.readOnly == false))
-      {
-        delete resources[resource].permissions[user]
-        cb(null, true, '"' + user +
-          '" is no longer authorized for "write" for "'
-           + resource + '"')
-        return
-      }
-      // Is write and we want to revoke read-only - not allowed
-      if ((readOnly == true) && (current.readOnly == false))
-      {
-        cb(null, false, '"' + user + '" has "write" access for "'
-           + resource + '", so "read only" can\'t be revoked.')
-        return
-      }
-      // Is read-only and want to revoke write - remove it all
-      if ((readOnly == false) && (current.readOnly == true))
-      {
-        delete resources[resource].permissions[user]
-        cb(null, true, '"' + user + '" had "read only" access for "'
-           + resource + '" and now has nothing')
-        return
-      }
-
-      cb("something went wrong")
-      return;
+      delete resources[resource].permissions[user]
+      result = {error: null, success: true, message: '"' + user +
+        '" is no longer authorized for "write" for "'
+         + resource + '"'}
+    }
+    // Is write and we want to revoke read-only - not allowed
+    if ((readOnly == true) && (current.readOnly == false))
+    {
+      result = {error: null, success: false, message: '"' + user +
+          '" has "write" access for "' + resource +
+          '", so "read only" can\'t be revoked.'}
+    }
+    // Is read-only and want to revoke write - remove it all
+    if ((readOnly == false) && (current.readOnly == true))
+    {
+      delete resources[resource].permissions[user]
+      result = {error: null, success: true, message: '"' + user +
+          '" had "read only" access for "' + resource +
+          '" and now has nothing'}
     }
 
-  })
+    // remove resource if there is no other user with write access
+    if (result && result.success) {
+      const res = resources[resource]
+      const permissionDict = res.permissions
+      let removeResource = false
+      if (Object.keys(permissionDict).length === 0) {
+        // user is the only one with access to resource so remove it
+        removeResource = true
+      }
+      else {
+        // check if other owners have write access to resource
+        removeResource = true
+        for (let username in permissionDict) {
+          const perms = permissionDict[username]
+          if (perms.readOnly !== true) {
+            // remove resource since user is the only one with write access
+            removeResource = false
+            break;
+          }
+        }
+      }
+      if (removeResource) {
+        const r = deleteResourceSync(user, resource)
+        if (r.error) {
+          result = {error: r.error, success: false, message:
+              'Cannot remove orphan resource'}
+        }
+      }
+    }
+    else if (!result) {
+      result = {error: 'something went wrong', success: false,
+          message: 'unknown error'}
+    }
+    return result
+  }
+}
+
+function revokePermission (me, user, resource, readOnly, cb) {
+  const result = revokePermissionSync(me, user, resource, readOnly)
+  cb(result.error, result.success, result.message)
 }
 
 function isAuthorizedSync(user, resourceName, readOnly) {
@@ -666,100 +699,26 @@ function copyInternalDatabase() {
   return res
 }
 
-// Remove user from database. The resource is removed if the user is the only
-// one with write access to the resource, otherwise the resource permission for
-// the user is revoked
-function deleteUser(user, cb) {
 
-  // loop through the resources and examine the user permissions
-  let resourcesToDelete = []
-  let resourcesToRevoke = []
-  const items =[]
+// Remove user from database and revoke the user permissions on all relevant
+// resources
+function deleteUser(user, cb) {
   for (let res in resources) {
     if (resources.hasOwnProperty(res)) {
       if (!isAuthorizedSync(user, res, true)) {
         continue
       }
 
-      // remove resource only if there is no other user with write access
-      const dbInfo = resources[res]
-      const permissionDict = dbInfo.permissions
-      if (Object.keys(permissionDict).length === 1) {
-        // user is the only one with access to resource so remove it
-        resourcesToDelete.push(res)
-      }
-      else {
-        // check if other owners have write access to resource
-        let otherOwner = false
-        for (let username in permissionDict) {
-          const perms = permissionDict[username]
-          if (user != username && perms.readOnly !== true) {
-            otherOwner = true
-            break;
-          }
-        }
-        if (!otherOwner) {
-          // remove resource since user is the only one with write access
-          resourcesToDelete.push(res)
-        }
-        else {
-          // revoke user permission
-          resourcesToRevoke.push({name: res,
-              readOnly: dbInfo.permissions[user].readOnly})
-        }
-      }
-    }
-  }
-
-  // function to revoke user permission on a list of resources
-  const revokeRes = function(index, items, revokeCb) {
-    if (index === items.length) {
-      revokeCb(null)
-      return
-    }
-
-    revokePermission(user, user, items[index].name, items[index].readOnly,
-        (err, success, message) => {
-      if (err) {
-        revokeCb(err, null)
-        return;
-      }
-      revokeRes(++index, items, revokeCb)
-    })
-  }
-
-  // function to delete a list of resources
-  const deleteRes = function(index, items, deleteCb) {
-    if (index === items.length) {
-      deleteCb(null)
-      return
-    }
-
-    deleteResource(user, items[index], (err, resource) => {
-      if (err) {
-        deleteCb(err, null)
-        return;
-      }
-      deleteRes(++index, items, deleteCb)
-    })
-  }
-
-  // chain the functions to delete resources and revoke resource permissions
-  deleteRes(0, resourcesToDelete, (err) => {
-    if (err) {
-      cb(err)
-      return
-    }
-
-    revokeRes(0, resourcesToRevoke, (err) => {
-      if (err) {
-        cb(err)
+      // revoke permission on resource
+      const result = revokePermissionSync(user, user, res,
+          resources[res].permissions[user].readOnly)
+      if (result.error) {
+        cb(result.error)
         return
       }
-      cb(null)
-    })
-  })
-
+    }
+  }
+  cb(null)
 }
 
 // database setup
