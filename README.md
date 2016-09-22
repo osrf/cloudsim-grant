@@ -4,6 +4,8 @@
 
 [![Dependency Status](https://www.versioneye.com/user/projects/57ca2b3469d9490042f7322b/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/57ca2b3469d9490042f7322b)
 
+[![Coverage Status](https://coveralls.io/repos/bitbucket/osrf/cloudsim-grant/badge.svg?branch=default)](https://coveralls.io/bitbucket/osrf/cloudsim-grant?branch=default)
+
 # README #
 
 This is a grant / revoke permission module for cloudsim
