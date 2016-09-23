@@ -551,12 +551,13 @@ function authenticate(req, res, next) {
       res.status(401).jsonp({success:false, error: "invalid token: " + err})
       return
     }
-    if(!decoded.username) {
-      res.status(401).jsonp({"success":false, "error":"token must contain username"})
+    if(!decoded.identities || decoded.identities.length === 0) {
+      res.status(401).jsonp({"success":false, "error":"token must contain identities"})
       return
     }
     // success.
-    req.user = decoded.username
+    req.user = decoded.identities[0]
+    req.identities = decoded.identities
     req.decoded = decoded
     // debug: user has been authenticated
     log(req.user,'authenticated')

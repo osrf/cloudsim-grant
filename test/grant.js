@@ -12,7 +12,6 @@ const keys = token.generateKeys()
 token.initKeys(keys.public, keys.private)
 csgrant.showLog = false
 
-let meTokenData = {username:'me'}
 let meToken
 
 let lastResponse = null
@@ -21,7 +20,7 @@ describe('<Unit Test grant>', function() {
 
   before(function(done) {
       model.clearDb()
-      token.signToken({username: 'me'}, (e, tok)=>{
+      token.signToken({identities: ['me']}, (e, tok)=>{
         if(e) {
           should.fail(e)
         }
@@ -43,6 +42,8 @@ describe('<Unit Test grant>', function() {
       csgrant.authenticate(req, res, ()=> {
         should.exist(req.user)
         req.user.should.equal('me')
+        req.identities.length.should.equal(1)
+        req.identities[0].should.equal('me')
         done()
       })
     })
