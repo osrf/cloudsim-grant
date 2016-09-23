@@ -488,22 +488,20 @@ function readResource(user, resourceName, cb) {
   cb(null, data)
 }
 
-
-function readAllResourcesForUserSync(user) {
+function readAllResourcesForUser(identities, cb) {
   const items =[]
   for (let res in resources) {
     if (resources.hasOwnProperty(res)) {
-      const resource = copyAndFormatResourceForOutput(user, res)
-      if (resource) {
-        items.push(resource)
+      for (let i = 0; i < identities.length; ++i) {
+        const resource = copyAndFormatResourceForOutput(identities[i], res)
+        if (resource) {
+          items.push(resource)
+          break
+        }
       }
     }
   }
-  return {error: null, result: items}
-}
-
-function readAllResourcesForUser(user, cb) {
-  cb(null, readAllResourcesForUserSync(user))
+  cb(null, items)
 }
 
 // this is middleware:
@@ -611,16 +609,20 @@ function ownsResource(resource, readOnly) {
 // the resources available to a user. That user must be
 // specified in req.user
 function userResources(req, res, next) {
-  let items = []
-  for (let i = 0; i < req.identities.length; ++i) {
-    const result = readAllResourcesForUserSync(req.identities[i])
-    if (result.error)
-      return res.status(500).jsonp({success: false, "error": result.error})
-    items = items.concat(result.result)
-  }
 
-  req.userResources = items
-  next()
+  readAllResourcesForUser(req.identities, (err, items) => {
+    const r = {success: false,
+               operation: 'get all resource',
+               requester: req.user}
+    if(err) {
+      return res.status(500).jsonp({
+                                     success: false,
+                                     "error": err
+                                   })
+    }
+    req.userResources = items
+    next()
+  })
 }
 
 // route that returns all shared resources for a user
