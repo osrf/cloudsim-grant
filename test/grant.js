@@ -72,8 +72,9 @@ describe('<Unit Test grant>', function() {
 
     it('there should be resources', (done) => {
        const req = {
-                    user: 'me',
-                    }
+                     user: 'me',
+                     identities: ['me']
+                   }
 
        const response = {
           status: function(st) {
@@ -100,6 +101,7 @@ describe('<Unit Test grant>', function() {
     it('creator should have access to resource', (done) => {
        const req = {
                      user: 'me',
+                     identities: ['me']
                    }
 
        const res = class ServerResponse {}
@@ -119,9 +121,10 @@ describe('<Unit Test grant>', function() {
 
     it('the resource can be obtain via a route', (done) => {
        const req = {
-                    user: 'me',
-                    resourceName: 'toaster',
-                    }
+                     user: 'me',
+                     identities: ['me'],
+                     resourceName: 'toaster',
+                   }
 
        const res = {
           jsonp: function (r) {
@@ -147,6 +150,7 @@ describe('<Unit Test grant>', function() {
       const req = {
                     headers:{authorization: meToken},
                     user: 'me',
+                    identities: ['me'],
                     body: {
                       grantee: 'joe',
                       resource: 'toaster',
@@ -185,6 +189,7 @@ describe('<Unit Test grant>', function() {
     it('joe should have write access to resource', (done) => {
        const req = {
                      user: 'joe',
+                     identities: ['joe']
                    }
 
        const res = {}
@@ -233,6 +238,7 @@ describe('<Unit Test grant>', function() {
     it('should be possible to revoke joe\'s toaster access', (done) => {
       const req = {
                     user: 'me',
+                    identities: ['me'],
                     body: {
                       grantee: 'joe',
                       resource: 'toaster',
@@ -262,6 +268,7 @@ describe('<Unit Test grant>', function() {
     it('joe should not have write access to resource', (done) => {
        const req = {
                      user: 'joe',
+                     identities: ['joe']
                    }
 
        let res =  {
@@ -286,6 +293,7 @@ describe('<Unit Test grant>', function() {
     it('should be possible to share the toaster with jack', (done) => {
       const req = {
                     user: 'me',
+                    identities: ['me'],
                     body: {
                       grantee: 'jack',
                       resource: 'toaster',
@@ -316,6 +324,7 @@ describe('<Unit Test grant>', function() {
     it('jack should have read access to resource', (done) => {
        const req = {
                      user: 'jack',
+                     identities: ['jack']
                    }
 
        let res =  {
@@ -370,6 +379,7 @@ describe('<Unit Test grant>', function() {
     it('should be possible to share the blender with joe', (done) => {
       const req = {
                     user: 'jack',
+                    identities: ['jack'],
                     body: {
                       grantee: 'joe',
                       resource: 'blender',
