@@ -111,6 +111,10 @@ describe('<Unit Test grant>', function() {
 
         should.exist(req.user)
         req.user.should.equal('me')
+        req.identities.length.should.equal(3)
+        if (! 'bob', 'me', 'alice' in req.identities) {
+          should.fail()
+        }
 
         should.exist(req.resourceName)
         req.resourceName.should.equal('toaster')
