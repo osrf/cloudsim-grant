@@ -101,7 +101,7 @@ describe('<Unit Test grant>', function() {
     it('creator should have access to resource', (done) => {
        const req = {
                      user: 'me',
-                     identities: ['me']
+                     identities: ['bob','me','alice']
                    }
 
        const res = class ServerResponse {}
@@ -111,11 +111,36 @@ describe('<Unit Test grant>', function() {
 
         should.exist(req.user)
         req.user.should.equal('me')
+        req.identities.length.should.equal(3)
+        if (! 'bob', 'me', 'alice' in req.identities) {
+          should.fail()
+        }
 
         should.exist(req.resourceName)
         req.resourceName.should.equal('toaster')
 
         done()
+      })
+    })
+
+    it('random users should not have access to resource', (done) => {
+       const req = {
+                     user: 'me',
+                     identities: ['bob', 'alice']
+                   }
+
+       const res =  {
+          jsonp: function(r) {
+            done()
+          },
+          status: function (code) {
+            code.should.equal(401)
+            return this
+          }
+       }
+
+       const owns = csgrant.ownsResource("toaster", false)
+       owns(req, res, ()=> {
       })
     })
 

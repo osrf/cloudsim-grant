@@ -4,8 +4,8 @@
   "description": "A small grant/revoke module for cloudsim",
   "main": "index.js",
   "scripts": {
-    "test": "export NODE_ENV=test; istanbul cover _mocha -- -u exports -R spec && istanbul-coveralls",
-    "test:local": "export NODE_ENV=test; istanbul cover _mocha -- -u exports -R spec"
+    "coveralls": "export NODE_ENV=test; istanbul cover _mocha -- -u exports -R spec && istanbul-coveralls",
+    "test": "export NODE_ENV=test; istanbul cover _mocha -- -u exports -R spec"
   },
   "repository": {
     "type": "mercurial",
