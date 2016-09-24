@@ -13,7 +13,7 @@ describe('<Unit Test grant database (model.js)>', function() {
   })
 
   describe('numbering a resource:', function() {
-    it('should have 4 characters', (done) => {
+    it('should have 3 characters for the number', (done) => {
       model.getNextResourceId('toto', (err, resId)=>{
         if(err)
           should.fail(err)
