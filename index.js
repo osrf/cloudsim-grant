@@ -589,7 +589,7 @@ function ownsResource(resource, readOnly) {
     }
     else {
       // read the resource, keep a local copy in the req
-      readResource(req.user, resourceName, (err, data) => {
+      readResource(req.authorizedIdentity, resourceName, (err, data) => {
         if(err) {
           return res.status(500).jsonp({
             "success": false,
