@@ -121,6 +121,9 @@ function clearDb() {
 }
 
 // function to get 0 in front of a number ( 9 -> 0009)
+// s: string / number to pad
+// c: pad character
+// n: total number of characters after padding
 const leftPad = (s,c,n) => c.repeat(n-String(s).length)+s
 
 // this is a convenient method to get the next id for a
