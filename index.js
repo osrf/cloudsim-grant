@@ -30,13 +30,14 @@ exports.dump = function () {
 // Initialization
 // @adminUser: the initial username, owner of the first resource
 // @resources: dictionary of resource names and initial data
-function init(adminUsername, resources, database, cb) {
+function init(adminUsername, resources, databaseName, databaseURL, cb) {
   log('cloudsim-grant init')
   // set the name of the list where data is stored
-  model.init(database)
-  log('loading data in redis list "' + database + '"')
+  model.init(databaseName)
+  model.setDatabaseURL(databaseURL)
+  log('loading data in redis list "' + databaseName + '"')
   loadPermissions(adminUsername, resources, () =>{
-    log('cloudsim-grant db "' + database  + '" loaded\n')
+    log('cloudsim-grant db "' + databaseName  + '" loaded\n')
     cb()
   })
 }
