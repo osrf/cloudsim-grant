@@ -1,7 +1,8 @@
 'use strict'
 
 const redis = require("redis")
-const client = redis.createClient()
+
+let client = redis.createClient()
 
 // when true, most output is suppressed
 exports.showLog = false
@@ -20,6 +21,19 @@ let listName = 'cloudsim-grant'
 // set the list name
 function init(databaseName) {
   listName = databaseName
+}
+
+// connect to database using a URL
+function setDatabaseURL(url) {
+  if (!url)
+    return;
+
+  if (client)
+    client.quit()
+
+  let options = {}
+  options.url = 'redis://' + url
+  client = redis.createClient(options)
 }
 
 // Redis events
@@ -122,6 +136,7 @@ function getNextResourceId(resourceType, cb) {
 }
 
 exports.init = init
+exports.setDatabaseURL = setDatabaseURL
 exports.listName = listName
 exports.grant = grant
 exports.revoke = revoke

@@ -30,13 +30,14 @@ exports.dump = function () {
 // Initialization
 // @adminUser: the initial username, owner of the first resource
 // @resources: dictionary of resource names and initial data
-function init(adminUsername, resources, database, cb) {
+function init(adminUsername, resources, databaseName, databaseURL, cb) {
   log('cloudsim-grant init')
   // set the name of the list where data is stored
-  model.init(database)
-  log('loading data in redis list "' + database + '"')
+  model.init(databaseName)
+  model.setDatabaseURL(databaseURL)
+  log('loading data in redis list "' + databaseName + '"')
   loadPermissions(adminUsername, resources, () =>{
-    log('cloudsim-grant db "' + database  + '" loaded\n')
+    log('cloudsim-grant db "' + databaseName  + '" loaded\n')
     cb()
   })
 }
@@ -197,15 +198,6 @@ function grantPermissionSync(me, user, resource, readOnly) {
   const p = JSON.stringify(resources, null, 2)
   log('\n\nGrant:', me, user, resource, '\n', p)
 
-  // Am I authorized to grant this permission
-  const authorized = isAuthorizedSync(me, resource, readOnly)
-  // I'm not authorized to give this permission
-  if (!authorized) {
-    const msg = '"' + me + '" has insufficient priviledges to manage "'
-                   + user + '" access for "' + resource + '"'
-    // log('grantPermission error: ' + msg')
-    return {error: null, success: false, message: msg}
-  }
   if (!resources[resource])
   {
     return {error: null, success: false, message: 'Resource "' + resource +
@@ -275,15 +267,6 @@ function grantPermission(me, user, resource, readOnly, cb) {
 function revokePermissionSync (me, user, resource, readOnly) {
   model.revoke(me, user, resource, readOnly)
 
-  // Am I authorized to revoke this permission
-  const authorized = isAuthorizedSync(me, resource, readOnly)
-
-  // I'm not authorized to give this permission
-  if (!authorized) {
-    return {error: null, success: false, message: '"' + me +
-        '" has insufficient priviledges to manage "' + user +
-        '" access for "' + resource + '"'}
-  }
   const current = resources[resource].permissions[user]
   // If user has no authorization
   if (!current)
@@ -506,13 +489,16 @@ function readResource(user, resourceName, cb) {
   cb(null, data)
 }
 
-function readAllResourcesForUser(user, cb) {
+function readAllResourcesForUser(identities, cb) {
   const items =[]
   for (let res in resources) {
     if (resources.hasOwnProperty(res)) {
-      const resource = copyAndFormatResourceForOutput(user, res)
-      if (resource) {
-        items.push(resource)
+      for (let i = 0; i < identities.length; ++i) {
+        const resource = copyAndFormatResourceForOutput(identities[i], res)
+        if (resource) {
+          items.push(resource)
+          break
+        }
       }
     }
   }
@@ -551,12 +537,13 @@ function authenticate(req, res, next) {
       res.status(401).jsonp({success:false, error: "invalid token: " + err})
       return
     }
-    if(!decoded.username) {
-      res.status(401).jsonp({"success":false, "error":"token must contain username"})
+    if(!decoded.identities || decoded.identities.length === 0) {
+      res.status(401).jsonp({"success":false, "error":"token must contain identities"})
       return
     }
     // success.
-    req.user = decoded.username
+    req.user = decoded.identities[0]
+    req.identities = decoded.identities
     req.decoded = decoded
     // debug: user has been authenticated
     log(req.user,'authenticated')
@@ -581,25 +568,29 @@ function ownsResource(resource, readOnly) {
       // to have put the value in the req for us
       resourceName = req[param]
     }
-    // assume user is set in authenticate
-    const user = req.user
-    // check user authorization to resource
-    isAuthorized(user, resourceName, readOnly,
-                          (err, authorized) => {
-      if(err) {
-        return res.jsonp(error(err))
+
+    // check all identities and proceed if any one of them is authorized
+    for (let i = 0; i < req.identities.length; ++i) {
+      const authorized = isAuthorizedSync(
+          req.identities[i], resourceName, readOnly)
+      if (authorized) {
+        req.authorizedIdentity = req.identities[i]
+        break
       }
-      if(!authorized){
-        const msg = 'insufficient permission for user "' + user + '"'
-            + ' to access resource "' + resourceName + '"'
-        log(msg)
-        return res.status(401).jsonp({
-           "success": false,
-           "error": msg
-        })
-      }
+    }
+
+    if(!req.authorizedIdentity){
+      const msg = 'insufficient permission for user "' + req.user + '"'
+          + ' to access resource "' + resourceName + '"'
+      log(msg)
+      return res.status(401).jsonp({
+         "success": false,
+         "error": msg
+      })
+    }
+    else {
       // read the resource, keep a local copy in the req
-      readResource(user, resourceName, (err, data) => {
+      readResource(req.authorizedIdentity, resourceName, (err, data) => {
         if(err) {
           return res.status(500).jsonp({
             "success": false,
@@ -611,7 +602,7 @@ function ownsResource(resource, readOnly) {
         req.resourceName = resourceName
         next()
       })
-    }) // isAuthorized
+    }
   }
 }
 
@@ -620,7 +611,7 @@ function ownsResource(resource, readOnly) {
 // specified in req.user
 function userResources(req, res, next) {
 
-  readAllResourcesForUser(req.user, (err, items) => {
+  readAllResourcesForUser(req.identities, (err, items) => {
     const r = {success: false,
                operation: 'get all resource',
                requester: req.user}
