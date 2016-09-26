@@ -12,6 +12,21 @@ describe('<Unit Test grant database (model.js)>', function() {
       done()
   })
 
+  describe('numbering a resource:', function() {
+    it('should have 3 characters for the number', (done) => {
+      model.getNextResourceId('toto', (err, resId)=>{
+        if(err)
+          should.fail(err)
+        if(resId.length != 8){
+          should.fail("not the right size: " + resId)
+        }
+        else {
+          done()
+        }
+      })
+    })
+  })
+
   describe('adding and sharing a resource:', function(){
     it('should have an empty db', (done) => {
       model.readDb((err, items)=>{

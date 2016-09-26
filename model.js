@@ -120,6 +120,12 @@ function clearDb() {
   console.log('"' + listName + '" database deleted')
 }
 
+// function to get 0 in front of a number ( 9 -> 0009)
+// s: string / number to pad
+// c: pad character
+// n: total number of characters after padding
+const leftPad = (s,c,n) => c.repeat(n-String(s).length)+s
+
 // this is a convenient method to get the next id for a
 // given resource type (i.e. simulation). The value is
 // kept in the database
@@ -127,7 +133,8 @@ function getNextResourceId(resourceType, cb) {
   client.incr(resourceType + "_id", function(err, id) {
     if(err)
       cb(err)
-    cb(null, resourceType + '-' + id)
+    const numberStr = id < 1000?leftPad(id, '0', 3):id
+    cb(null, resourceType + '-' + numberStr)
   });
 }
 
