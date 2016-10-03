@@ -55,7 +55,7 @@ function SocketDict() {
     log('notify users ' + users)
     for (let socket of this.sockets) {
       // verify token again (as it may have expired)
-      csgrant.verifyToken(token, function(err, decoded) {
+      csgrant.verifyToken(socket.token, function(err, decoded) {
         if (err) {
           console.log('Error verifying token: ' + err )
           return
