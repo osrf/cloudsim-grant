@@ -1,6 +1,6 @@
 'use strict';
 
-const csgrant = require('../index')
+const csgrant = require('./index')
 
 var util = require('util');
 var adminUser = 'admin';
@@ -63,7 +63,7 @@ function SocketDict() {
         // token is good. Any users in its identities?
         if (AnyOfUsersInIdentities(users, decode.identities))
           s.emit(channel, data)
-      }
+      })
     }
   }
 
@@ -83,12 +83,13 @@ exports.init = function(server, events) {
   io.use(function(socket, next) {
     var handshakeData = socket.request
     var token = handshakeData._query['token']
-    (if !token) {
+    if(!token) {
       const error = 'missing token in the socket'
       console.log(error, socket)
       socket.emit('unauthorized', error, function() {
-      socket.disconnect('unauthorized')
-      return
+        socket.disconnect('unauthorized')
+       return
+      })
     }
     csgrant.verifyToken(token, function(err, decoded) {
       // function to call when unauthorized
@@ -131,8 +132,7 @@ exports.init = function(server, events) {
       const data = {resource: resource, operation: operation}
       // notify the users on sockets with appropriate identities
       userSockets.notifyUsers(users, 'resource', data)
-    }
-
+    })
   })
   // allow others to send/receive messages
   return io
