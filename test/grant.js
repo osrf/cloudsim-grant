@@ -6,15 +6,18 @@ const model = require('../model')
 const token = require('../token')
 const util = require('util')
 
+// true: log appears on the console, false: no logging
+const log = false? console.log: ()=>{}
 
 // we need keys for this test
 const keys = token.generateKeys()
 token.initKeys(keys.public, keys.private)
-csgrant.showLog = false
+
+// help debug (with a deluge of text)
+//csgrant.showLog = true
 
 let meToken
-
-let lastResponse = null
+let eventsList = []
 
 describe('<Unit Test grant>', function() {
 
@@ -29,11 +32,17 @@ describe('<Unit Test grant>', function() {
       })
   })
 
-  describe('Toaster sharing:', function() {
-    it('should have an empty db', (done) => {
-      csgrant.model.clearDb()
+  before(function(done) {
+      csgrant.events.on('resource', (resource, operation, users)=> {
+          eventsList.push({resource: resource,
+                           operation: operation,
+                           users: users})
+          log('RESOURCE event:', resource, operation, eventsList.length)
+      })
       done()
-    })
+  })
+
+  describe('Toaster sharing:', function() {
     it('should authenticate', (done) => {
       const req = {
         headers : {authorization: meToken}
@@ -47,9 +56,16 @@ describe('<Unit Test grant>', function() {
         done()
       })
     })
+
     it('should be possible to add a toaster', (done) => {
       csgrant.createResource('me', 'toaster', {slots:2}, (e)=>{
-        if(e) should.fail(e)
+        if(e)
+            should.fail(e)
+        eventsList.length.should.equal(1)
+        eventsList[0].resource.should.equal('toaster')
+        eventsList[0].operation.should.equal('create')
+        eventsList[0].users.length.should.equal(1)
+        eventsList[0].users[0].should.equal('me')
         done()
       })
     })
@@ -69,13 +85,11 @@ describe('<Unit Test grant>', function() {
       })
     })
 
-
     it('there should be resources', (done) => {
        const req = {
                      user: 'me',
                      identities: ['me']
                    }
-
        const response = {
           status: function(st) {
             st.should.equal(200)
@@ -103,9 +117,7 @@ describe('<Unit Test grant>', function() {
                      user: 'me',
                      identities: ['bob','me','alice']
                    }
-
        const res = class ServerResponse {}
-
        const owns = csgrant.ownsResource("toaster", false)
        owns(req, res, ()=> {
 
@@ -172,6 +184,7 @@ describe('<Unit Test grant>', function() {
 
 
     it('should be possible to share the toaster with joe', (done) => {
+      eventsList = []
       const req = {
                     headers:{authorization: meToken},
                     user: 'me',
@@ -188,6 +201,12 @@ describe('<Unit Test grant>', function() {
           if(!r.success) {
             should.fail('cannot grant')
           }
+        eventsList.length.should.equal(1)
+        eventsList[0].resource.should.equal('toaster')
+        eventsList[0].operation.should.equal('grant')
+        eventsList[0].users.length.should.equal(2)
+        eventsList[0].users[0].should.equal('me')
+        eventsList[0].users[1].should.equal('joe')
           done()
         }
       }
@@ -227,17 +246,19 @@ describe('<Unit Test grant>', function() {
 
         should.exist(req.resourceName)
         req.resourceName.should.equal('toaster')
-
         done()
       })
     })
 
     it('should be possible to update the toaster (add slots)', (done) => {
+      // clear vents
+      eventsList = []
       csgrant.updateResource('me', 'toaster', {slots:4}, (e) =>{
         if(e)
           should.fail(e)
-        else
-          done()
+        eventsList.length.should.equal(1)
+        eventsList[0].operation.should.equal('update')
+        done()
       })
     })
 
@@ -378,14 +399,19 @@ describe('<Unit Test grant>', function() {
 
     // add a blender for testing resource permission after user deletion
     it('should be possible for jack to add a blender', (done) => {
+      eventsList = []
       csgrant.createResource('jack', 'blender', {blades:5}, (e)=>{
         if(e) should.fail(e)
         done()
+        eventsList.length.should.equal(1)
+        eventsList[0].resource.should.equal('blender')
+        eventsList[0].operation.should.equal('create')
       })
     })
 
     // verify blender is in the database
     it('db should have the blender', (done) => {
+      eventsList = []
       csgrant.readResource('jack', 'blender', (e, resource ) =>{
         if(e) {
           should.fail(e)
@@ -395,6 +421,8 @@ describe('<Unit Test grant>', function() {
           const mePerm = resource.permissions[0]
           mePerm.username.should.equal('jack', 'jack not owner')
           mePerm.permissions.readOnly.should.equal(false, 'jack not owner!')
+          // no new eventsList
+          eventsList.length.should.equal(0)
           done()
         }
       })
@@ -402,6 +430,7 @@ describe('<Unit Test grant>', function() {
 
     // share with joe and give readOnly permission
     it('should be possible to share the blender with joe', (done) => {
+      eventsList = []
       const req = {
                     user: 'jack',
                     identities: ['jack'],
@@ -417,26 +446,36 @@ describe('<Unit Test grant>', function() {
             should.fail('cannot grant')
           }
           r.requester.should.equal('jack')
+          eventsList.length.should.equal(1)
+          eventsList[0].resource.should.equal('blender')
+          eventsList[0].operation.should.equal('grant')
           done()
         }
       }
       csgrant.grant(req, response)
-
     })
 
     // verify joe has readOnly permission to blender
     it('joe should also have access to the blender', (done) => {
+      eventsList = []
       csgrant.isAuthorized('joe', 'blender', true, (e, authorized) => {
         should.not.exist(e)
         authorized.should.equal(true)
+        eventsList.length.should.equal(0)
         done()
       })
     })
 
     // delete jack!
     it('should be possible to delete jack', (done) => {
+      eventsList = []
       csgrant.deleteUser('jack', (e) => {
         should.not.exist(e)
+        eventsList.length.should.equal(2)
+        eventsList[0].resource.should.equal('toaster')
+        eventsList[0].operation.should.equal('revoke')
+        eventsList[1].resource.should.equal('blender')
+        eventsList[1].operation.should.equal('revoke')
         done()
       })
     })
@@ -448,7 +487,8 @@ describe('<Unit Test grant>', function() {
       // the blender should be gone since it's shared with another user
       // who has readOnly permission
       csgrant.readResource('joe', 'blender', (e, resource ) =>{
-        should.exist(e)
+         // blender resource will not be deleted. It'll be an orphan for now.
+         should.not.exist(e)
 
         // toaster should still be accessible since jack only had readOnly
         // access to this resource
@@ -460,7 +500,6 @@ describe('<Unit Test grant>', function() {
             resource.data.slots.should.equal(4, 'not updated')
             resource.name.should.equal('toaster', 'wrong resource')
             resource.permissions.length.should.equal(1, 'wrong number of permissions')
-
             resource.permissions[0].username.should.equal('me')
             resource.permissions[0].permissions.readOnly.should.equal(false)
             done()
@@ -471,8 +510,12 @@ describe('<Unit Test grant>', function() {
 
     // remove the toaster
     it('should be possible to remove the toaster', (done) => {
+      eventsList = []
       csgrant.deleteResource('me', 'toaster', (e)=>{
         if(e) should.fail(e)
+        eventsList.length.should.equal(1)
+        eventsList[0].resource.should.equal('toaster')
+        eventsList[0].operation.should.equal('delete')
         done()
       })
     })

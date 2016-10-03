@@ -24,9 +24,9 @@ function init(databaseName) {
 }
 
 // connect to database using a URL
-function setDatabaseURL(url) {
+function setDatabaseUrl(url) {
   if (!url)
-    return;
+    throw "no url specified for database"
 
   if (client)
     client.quit()
@@ -139,7 +139,7 @@ function getNextResourceId(resourceType, cb) {
 }
 
 exports.init = init
-exports.setDatabaseURL = setDatabaseURL
+exports.setDatabaseUrl = setDatabaseUrl
 exports.listName = listName
 exports.grant = grant
 exports.revoke = revoke
