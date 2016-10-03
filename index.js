@@ -4,9 +4,15 @@ const util = require("util")
 const jstoken = require("./token")
 const model = require("./model")
 const download =  require('./download')
+const EventEmitter = require('events')
 
 // when false, log output is suppressed
 exports.showLog = false
+
+// Event emitter for resource (create, update and delete)
+class Emitter extends EventEmitter {}
+const events = new Emitter()
+exports.events = events
 
 // log to console
 // @s string to log
@@ -19,6 +25,7 @@ function log(s) {
 // the resources data structure
 let resources = {}
 
+// write the content of the db to the terminal
 exports.dump = function () {
   let s = JSON.stringify(resources, null, 3)
   console.log('\n\nCLOUSDSIM GRANT DUMP\n',
@@ -30,12 +37,12 @@ exports.dump = function () {
 // Initialization
 // @adminUser: the initial username, owner of the first resource
 // @resources: dictionary of resource names and initial data
-function init(adminUsername, resources, databaseName, databaseURL, cb) {
+function init(adminUsername, resources, databaseName, databaseUrl, cb) {
   log('cloudsim-grant init')
   // set the name of the list where data is stored
   model.init(databaseName)
-  model.setDatabaseURL(databaseURL)
-  log('loading data in redis list "' + databaseName + '"')
+  model.setDatabaseUrl(databaseUrl)
+  log('loading redis list "' + databaseName + '" at url: ' + databaseUrl)
   loadPermissions(adminUsername, resources, () =>{
     log('cloudsim-grant db "' + databaseName  + '" loaded\n')
     cb()
@@ -77,7 +84,7 @@ function loadPermissions(adminUser, resources, cb) {
     // put the data back
     for (let i=0; i < items.length; i++) {
       const item = items[i]
-      log('  ' + i + '/' + items.length  +  ' ] ' + JSON.stringify(item))
+      log(' [' + i + '/' + items.length + '] ' + JSON.stringify(item, null, 2))
       switch (item.operation) {
         case 'set': {
           log('set')
@@ -117,10 +124,12 @@ function loadPermissions(adminUser, resources, cb) {
 // create update delete a resource.
 //
 function setResourceSync(me, resource, data) {
+
   model.setResource(me, resource, data)
   if (!data) {
     // data is null, signifying deletion
     delete resources[resource]
+    events.emit('resource', resource, 'delete')
   }
   // adding or updating
   else {
@@ -128,6 +137,7 @@ function setResourceSync(me, resource, data) {
     if(resources[resource]) {
       // resource update
       resources[resource].data = data
+      events.emit('resource', resource, 'update')
     }
     else {
       // brand new resource
@@ -137,18 +147,17 @@ function setResourceSync(me, resource, data) {
         data: data,
         permissions: permissions
       }
+      events.emit('resource', resource, 'create')
     }
   }
   return {error: null, result: resources[resource]}
 }
 
 // create update delete a resource.
-//
 function setResource(me, resource, data, cb) {
   const result = setResourceSync(me, resource, data)
   cb(result.error, result.result)
 }
-
 
 function createResource (me, resource, data, cb) {
   if(resources[resource]) {
@@ -196,7 +205,7 @@ function updateResource(me, resource, data, cb) {
 
 function grantPermissionSync(me, user, resource, readOnly) {
   const p = JSON.stringify(resources, null, 2)
-  log('\n\nGrant:', me, user, resource, '\n', p)
+  log('Grant:', me, user, resource, '\n', p)
 
   if (!resources[resource])
   {
@@ -205,7 +214,7 @@ function grantPermissionSync(me, user, resource, readOnly) {
   }
 
   let current = resources[resource].permissions[user]
-
+  let message
   // If user already has some authorization
   if (current)
   {
@@ -227,19 +236,20 @@ function grantPermissionSync(me, user, resource, readOnly) {
     if ((readOnly == true) && (current.readOnly == false))
     {
       current.readOnly = true
-      return {error: null, success: true, message: '"' + user + '" access for "'
-         + resource + '" has been downgraded to "read only"'}
+      message: '"' + user + '" access for "'
+         + resource + '" has been downgraded to "read only"'
     }
     // Is read only and we want to upgrade
-    if ((readOnly == false) && (current.readOnly == true))
+    else if ((readOnly == false) && (current.readOnly == true))
     {
       current.readOnly = false
-      return {error: null, success: true, message: '"' + user + '" access for "'
-         + resource + '" has been upgraded to "write"'}
+      message: '"' + user + '" access for "'
+         + resource + '" has been upgraded to "write"'
     }
-
-    return {error: 'something went wrong', success: false,
+    else {
+      return {error: 'something went wrong', success: false,
         message: 'unknown error'}
+    }
   }
   else
   {
@@ -250,12 +260,13 @@ function grantPermissionSync(me, user, resource, readOnly) {
     resources[resource].permissions[user] = x
 
     const readOnlyTxt = readOnly? "read only" : "write"
-    const msg = '"' + user + '" now has "' + readOnlyTxt +
+    message = '"' + user + '" now has "' + readOnlyTxt +
       '" access for "' + resource + '"'
-    // write it to the db
-    model.grant(me, user, resource, readOnly )
-    return {error: null, success: true, message: msg}
   }
+  // write it to the db
+  model.grant(me, user, resource, readOnly )
+  events.emit('resource', resource, 'grant')
+  return {error: null, success: true, message: message}
 }
 
 
@@ -266,7 +277,6 @@ function grantPermission(me, user, resource, readOnly, cb) {
 
 function revokePermissionSync (me, user, resource, readOnly) {
   model.revoke(me, user, resource, readOnly)
-
   const current = resources[resource].permissions[user]
   // If user has no authorization
   if (!current)
@@ -282,7 +292,7 @@ function revokePermissionSync (me, user, resource, readOnly) {
     if ((readOnly == true) && (current.readOnly == true))
     {
       delete resources[resource].permissions[user]
-      let msg = '"' + user
+      const msg = '"' + user
          + '" is no longer authorized for "read only" for "'
          + resource + '"'
       result = {error: null, success: true, message: msg}
@@ -600,6 +610,7 @@ function ownsResource(resource, readOnly) {
         log('Authorized resource: ' + resourceName )
         req.resourceData = data
         req.resourceName = resourceName
+        req.resourcePermissions = data.permissions[0].permissions
         next()
       })
     }
