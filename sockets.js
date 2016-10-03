@@ -1,13 +1,22 @@
 'use strict';
 
-const csgrant = require('cloudsim-grant')
+const csgrant = require('../index')
+
 var util = require('util');
 var adminUser = 'admin';
 if (process.env.CLOUDSIM_ADMIN)
   adminUser = process.env.CLOUDSIM_ADMIN;
 
-exports.showLog = false
+exports.showLog = true
 const log = exports.showLog? console.log: ()=>{}
+
+
+function AnyOfUsersInIdentities(users, identities){
+  var intersection = identities.filter(function(n) {
+    return users.indexOf(n) > -1;
+  })
+  return intersection.length > 0
+}
 
 // Fast lookup of sockets per user.
 function SocketDict() {
@@ -56,16 +65,16 @@ function SocketDict() {
   };
 }
 
-var userSockets = new SocketDict();
+var userSockets = new SocketDict()
 
 exports.getUserSockets = function () {
-  return userSockets;
+  return userSockets
 };
 
 
 // Initialise the socket.io library
 // server:
-exports.init = function(server) {
+exports.init = function(server, events) {
 
   const io = require('socket.io')(server)
   userSockets.io = io;
@@ -83,8 +92,7 @@ exports.init = function(server) {
         next();
     }
     else if (token) {
-        csgrant.verifyToken(token, function(err, decoded) {
-
+      csgrant.verifyToken(token, function(err, decoded) {
         var unauthorizedAccess = function(error) {
           socket.emit('unauthorized', error, function() {
             socket.disconnect('unauthorized');
@@ -99,24 +107,20 @@ exports.init = function(server) {
           unauthorizedAccess(error);
           return;
         }
-
-        log(util.inspect(decoded));
-
+        log(util.inspect(decoded))
         if (!decoded.identities || decoded.identities.length == 0) {
-          console.error('Invalid token. No identities provided');
-          var error = {"message": "no identities provided"};
-          unauthorizedAccess(error);
-
+          console.error('Invalid token. No identities provided')
+          var error = {"message": "no identities provided"}
+          unauthorizedAccess(error)
           // return an error
-          return;
+          return
         }
-        socket.identities = decoded.identities;
-
-        next();
-      });
+        socket.identities = decoded.identities
+        next()
+      })
     }
 
-  });
+  })
 
   io.on('connection', function (socket) {
     // todo: add each identity to the socket, not just the first one
@@ -125,9 +129,21 @@ exports.init = function(server) {
     userSockets.addSocket(user, socket)
 
     socket.on('disconnect', function() {
-      log(' socket disconnected: ' + user);
-      userSockets.removeSocket(user, socket);
-    });
+      log(' socket disconnected: ' + user)
+      userSockets.removeSocket(user, socket)
+    })
+
+    events.on('resource', function(resource, operation, users) {
+      const user = users[0]
+      const data = {resource: resource, operation: operation}
+      // the union of th 2 arrays
+      // Array.from(new Set([].concat(users, identities)))
+
+      // notify
+      userSockets.notifyUser(users, data)
+    }
+
   })
+
   return io
 }

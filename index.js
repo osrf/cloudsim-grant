@@ -56,15 +56,19 @@ exports.dump = function (msg) {
 }
 
 // Initialization
-// @adminUser: the initial username, owner of the first resource
+// @adminUser: the initial username, owner of the first resources
 // @resources: dictionary of resource names and initial data
-function init(adminUsername, resources, databaseName, databaseUrl, cb) {
+// @databaseName: the Redis list that contains the data
+// @databaseUrl: the ip of the Redis db
+// @server: the httpServer used to initialize socket.io
+// @cb: callback
+function init(adminUser, resources, databaseName, databaseUrl, server, cb) {
   log('cloudsim-grant init')
   // set the name of the list where data is stored
   model.init(databaseName)
   model.setDatabaseUrl(databaseUrl)
   log('loading redis list "' + databaseName + '" at url: ' + databaseUrl)
-  loadPermissions(adminUsername, resources, () =>{
+  loadPermissions(adminUser, resources, () =>{
     log('cloudsim-grant db "' + databaseName  + '" loaded\n')
     cb()
   })
@@ -143,7 +147,6 @@ function loadPermissions(adminUser, resources, cb) {
 }
 
 // create update delete a resource.
-//
 function setResourceSync(me, resource, data) {
 
   model.setResource(me, resource, data)
