@@ -348,7 +348,7 @@ function revokePermissionSync (me, user, resource, readOnly) {
             '" and now has nothing'}
       }
 
-      // remove resource if there is no other user with write access
+      /*// remove resource if there is no other user with write access
       if (result && result.success) {
         const res = resources[resource]
         const permissionDict = res.permissions
@@ -380,7 +380,7 @@ function revokePermissionSync (me, user, resource, readOnly) {
       else if (!result) {
         result = {error: 'something went wrong', success: false,
             message: 'unknown error'}
-      }
+      }*/
       return result
     }
   }

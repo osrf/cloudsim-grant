@@ -471,18 +471,11 @@ describe('<Unit Test grant>', function() {
       eventsList = []
       csgrant.deleteUser('jack', (e) => {
         should.not.exist(e)
-console.log('What is going on? Bug?\n', eventsList)
-        eventsList.length.should.equal(3)
+        eventsList.length.should.equal(2)
         eventsList[0].resource.should.equal('toaster')
         eventsList[0].operation.should.equal('revoke')
-//  TODO
-//  WARNING: another bug?: why has the resource been deleted?
-//  Imagine a user with a running machine. This could lead to machines that are never stopped.
         eventsList[1].resource.should.equal('blender')
-        eventsList[1].operation.should.equal('delete')
-// That one doesn't look good either. Bug?
-        eventsList[2].resource.should.equal('blender')
-        eventsList[2].operation.should.equal('revoke')
+        eventsList[1].operation.should.equal('revoke')
         done()
       })
     })
@@ -494,7 +487,8 @@ console.log('What is going on? Bug?\n', eventsList)
       // the blender should be gone since it's shared with another user
       // who has readOnly permission
       csgrant.readResource('joe', 'blender', (e, resource ) =>{
-        should.exist(e)
+         // blender resource will not be deleted. It'll be an orphan for now.
+         should.not.exist(e)
 
         // toaster should still be accessible since jack only had readOnly
         // access to this resource
