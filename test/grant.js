@@ -6,6 +6,7 @@ const model = require('../model')
 const token = require('../token')
 const util = require('util')
 
+// true: log appears on the console, false: no logging
 const log = false? console.log: ()=>{}
 
 // we need keys for this test

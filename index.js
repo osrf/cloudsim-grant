@@ -26,10 +26,13 @@ function log(s) {
 let resources = {}
 
 // write the content of the db to the terminal
-exports.dump = function () {
+exports.dump = function (msg) {
   let s = JSON.stringify(resources, null, 3)
+  const title = msg?msg:""
   console.log('\n\nCLOUSDSIM GRANT DUMP\n',
-    '  DB:',model.listName,
+    title,
+    '\n',
+    '  DB:', model.listName,
     '\n',s,
     '\n-----\n')
 }
