@@ -4,6 +4,7 @@ const util = require("util")
 const jstoken = require("./token")
 const model = require("./model")
 const download =  require('./download')
+const sockets = require('./sockets')
 const EventEmitter = require('events')
 
 // when false, log output is suppressed
@@ -70,6 +71,7 @@ function init(adminUser, resources, databaseName, databaseUrl, server, cb) {
   log('loading redis list "' + databaseName + '" at url: ' + databaseUrl)
   loadPermissions(adminUser, resources, () =>{
     log('cloudsim-grant db "' + databaseName  + '" loaded\n')
+    sockets.init(server, events)
     cb()
   })
 }
