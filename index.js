@@ -9,17 +9,35 @@ const EventEmitter = require('events')
 // when false, log output is suppressed
 exports.showLog = false
 
-// Event emitter for resource (create, update and delete)
-class Emitter extends EventEmitter {}
-const events = new Emitter()
-exports.events = events
-
 // log to console
 // @s string to log
 function log(s) {
   if (exports.showLog) {
     console.log('grant> ', s)
   }
+}
+
+// Event emitter for resource (create, update and delete)
+class Emitter extends EventEmitter {}
+const events = new Emitter()
+exports.events = events
+
+// This function fires a resource change event to interested parties.
+// resource: the name of the resource
+// operation: 'create', 'update' or 'delete'
+// usersToNotify: a list of users to notify
+//
+// The event is called 'resource'
+function emit(resource, operation, usersToNotify) {
+  // gather users (identities) of this resource
+  const users = usersToNotify?usersToNotify:[]
+  if (resources[resource]) {
+    for (let user in resources[resource].permissions) {
+      users.push(user)
+    }
+  }
+  // fire a 'resource' event
+  events.emit('resource', resource, operation, users)
 }
 
 // the resources data structure
@@ -130,9 +148,14 @@ function setResourceSync(me, resource, data) {
 
   model.setResource(me, resource, data)
   if (!data) {
+    const usersToNotify = []
+    for (let user in resources[resource].permissions) {
+      usersToNotify.push(user)
+    }
     // data is null, signifying deletion
     delete resources[resource]
-    events.emit('resource', resource, 'delete')
+    // delete is a special case where users are collected before
+    emit(resource, 'delete', usersToNotify)
   }
   // adding or updating
   else {
@@ -140,7 +163,7 @@ function setResourceSync(me, resource, data) {
     if(resources[resource]) {
       // resource update
       resources[resource].data = data
-      events.emit('resource', resource, 'update')
+      emit(resource, 'update')
     }
     else {
       // brand new resource
@@ -150,7 +173,7 @@ function setResourceSync(me, resource, data) {
         data: data,
         permissions: permissions
       }
-      events.emit('resource', resource, 'create')
+      emit(resource, 'create')
     }
   }
   return {error: null, result: resources[resource]}
@@ -268,7 +291,8 @@ function grantPermissionSync(me, user, resource, readOnly) {
   }
   // write it to the db
   model.grant(me, user, resource, readOnly )
-  events.emit('resource', resource, 'grant')
+  // console.trace('GRANT moment', resource)
+  emit(resource, 'grant')
   return {error: null, success: true, message: message}
 }
 
@@ -279,9 +303,7 @@ function grantPermission(me, user, resource, readOnly, cb) {
 }
 
 function revokePermissionSync (me, user, resource, readOnly) {
-
-  innerRevoke = function(me, user, resource, readOnly) {
-    events.emit('resource', resource, 'revoke')
+  const innerRevoke = function(me, user, resource, readOnly) {
     const current = resources[resource].permissions[user]
     // If user has no authorization
     if (!current)
@@ -364,7 +386,7 @@ function revokePermissionSync (me, user, resource, readOnly) {
   }
   const result = innerRevoke(me, user, resource, readOnly)
   if (result.success)
-    events.emit('resource', resource, 'grant')
+    events.emit('resource', resource, 'revoke', [user])
   return result
 }
 
@@ -631,7 +653,6 @@ function ownsResource(resource, readOnly) {
 // the resources available to a user. That user must be
 // specified in req.user
 function userResources(req, res, next) {
-
   readAllResourcesForUser(req.identities, (err, items) => {
     const r = {success: false,
                operation: 'get all resource',
