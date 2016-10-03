@@ -279,86 +279,93 @@ function grantPermission(me, user, resource, readOnly, cb) {
 }
 
 function revokePermissionSync (me, user, resource, readOnly) {
-  model.revoke(me, user, resource, readOnly)
-  const current = resources[resource].permissions[user]
-  // If user has no authorization
-  if (!current)
-  {
-    const msg = '"' + user + '" has no authorization for "'
-       + resource + '" so nothing changed.'
-    return {error: null, success: true, message: msg}
-  }
-  else
-  {
-    let result
-    // Is read only, revoking read only
-    if ((readOnly == true) && (current.readOnly == true))
-    {
-      delete resources[resource].permissions[user]
-      const msg = '"' + user
-         + '" is no longer authorized for "read only" for "'
-         + resource + '"'
-      result = {error: null, success: true, message: msg}
-    }
-    // Is write, revoking write
-    if ((readOnly == false) && (current.readOnly == false))
-    {
-      delete resources[resource].permissions[user]
-      result = {error: null, success: true, message: '"' + user +
-        '" is no longer authorized for "write" for "'
-         + resource + '"'}
-    }
-    // Is write and we want to revoke read-only - not allowed
-    if ((readOnly == true) && (current.readOnly == false))
-    {
-      result = {error: null, success: false, message: '"' + user +
-          '" has "write" access for "' + resource +
-          '", so "read only" can\'t be revoked.'}
-    }
-    // Is read-only and want to revoke write - remove it all
-    if ((readOnly == false) && (current.readOnly == true))
-    {
-      delete resources[resource].permissions[user]
-      result = {error: null, success: true, message: '"' + user +
-          '" had "read only" access for "' + resource +
-          '" and now has nothing'}
-    }
 
-    // remove resource if there is no other user with write access
-    if (result && result.success) {
-      const res = resources[resource]
-      const permissionDict = res.permissions
-      let removeResource = false
-      if (Object.keys(permissionDict).length === 0) {
-        // user is the only one with access to resource so remove it
-        removeResource = true
+  innerRevoke = function(me, user, resource, readOnly) {
+    events.emit('resource', resource, 'revoke')
+    const current = resources[resource].permissions[user]
+    // If user has no authorization
+    if (!current)
+    {
+      const msg = '"' + user + '" has no authorization for "'
+         + resource + '" so nothing changed.'
+      return {error: null, success: true, message: msg}
+    }
+    else
+    {
+      let result
+      // Is read only, revoking read only
+      if ((readOnly == true) && (current.readOnly == true))
+      {
+        delete resources[resource].permissions[user]
+        const msg = '"' + user
+           + '" is no longer authorized for "read only" for "'
+           + resource + '"'
+        result = {error: null, success: true, message: msg}
       }
-      else {
-        // check if other owners have write access to resource
-        removeResource = true
-        for (let username in permissionDict) {
-          const perms = permissionDict[username]
-          if (perms.readOnly !== true) {
-            // remove resource since user is the only one with write access
-            removeResource = false
-            break;
+      // Is write, revoking write
+      if ((readOnly == false) && (current.readOnly == false))
+      {
+        delete resources[resource].permissions[user]
+        result = {error: null, success: true, message: '"' + user +
+          '" is no longer authorized for "write" for "'
+           + resource + '"'}
+      }
+      // Is write and we want to revoke read-only - not allowed
+      if ((readOnly == true) && (current.readOnly == false))
+      {
+        result = {error: null, success: false, message: '"' + user +
+            '" has "write" access for "' + resource +
+            '", so "read only" can\'t be revoked.'}
+      }
+      // Is read-only and want to revoke write - remove it all
+      if ((readOnly == false) && (current.readOnly == true))
+      {
+        delete resources[resource].permissions[user]
+        result = {error: null, success: true, message: '"' + user +
+            '" had "read only" access for "' + resource +
+            '" and now has nothing'}
+      }
+
+      // remove resource if there is no other user with write access
+      if (result && result.success) {
+        const res = resources[resource]
+        const permissionDict = res.permissions
+        let removeResource = false
+        if (Object.keys(permissionDict).length === 0) {
+          // user is the only one with access to resource so remove it
+          removeResource = true
+        }
+        else {
+          // check if other owners have write access to resource
+          removeResource = true
+          for (let username in permissionDict) {
+            const perms = permissionDict[username]
+            if (perms.readOnly !== true) {
+              // remove resource since user is the only one with write access
+              removeResource = false
+              break;
+            }
+          }
+        }
+        if (removeResource) {
+          const r = deleteResourceSync(user, resource)
+          if (r.error) {
+            result = {error: r.error, success: false, message:
+                'Cannot remove orphan resource'}
           }
         }
       }
-      if (removeResource) {
-        const r = deleteResourceSync(user, resource)
-        if (r.error) {
-          result = {error: r.error, success: false, message:
-              'Cannot remove orphan resource'}
-        }
+      else if (!result) {
+        result = {error: 'something went wrong', success: false,
+            message: 'unknown error'}
       }
+      return result
     }
-    else if (!result) {
-      result = {error: 'something went wrong', success: false,
-          message: 'unknown error'}
-    }
-    return result
   }
+  const result = innerRevoke(me, user, resource, readOnly)
+  if (result.success)
+    events.emit('resource', resource, 'grant')
+  return result
 }
 
 function revokePermission (me, user, resource, readOnly, cb) {

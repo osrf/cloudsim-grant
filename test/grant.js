@@ -63,6 +63,9 @@ describe('<Unit Test grant>', function() {
         events.length.should.equal(1)
         events[0].resource.should.equal('toaster')
         events[0].operation.should.equal('create')
+csgrant.dump('WWWWWWWWWWWWWWWWWWWWW')
+        events[0].users.length.should.equal(1)
+        events[0].users[0].should.equal('me')
         done()
       })
     })
@@ -87,7 +90,6 @@ describe('<Unit Test grant>', function() {
                      user: 'me',
                      identities: ['me']
                    }
-
        const response = {
           status: function(st) {
             st.should.equal(200)
@@ -115,9 +117,7 @@ describe('<Unit Test grant>', function() {
                      user: 'me',
                      identities: ['bob','me','alice']
                    }
-
        const res = class ServerResponse {}
-
        const owns = csgrant.ownsResource("toaster", false)
        owns(req, res, ()=> {
 
