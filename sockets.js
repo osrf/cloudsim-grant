@@ -45,7 +45,7 @@ function SocketDict() {
     const index = this.sockets.indexOf(socket)
     if (index > -1) {
       // remove
-      array.splice(index,1)
+      this.sockets.splice(index,1)
       return
     }
   }
@@ -61,8 +61,9 @@ function SocketDict() {
           return
         }
         // token is good. Any users in its identities?
-        if (AnyOfUsersInIdentities(users, decode.identities))
-          s.emit(channel, data)
+        if (AnyOfUsersInIdentities(users, decoded.identities))
+console.log('emit!', users,  channel, data)
+          socket.emit(channel, data)
       })
     }
   }
@@ -81,17 +82,18 @@ exports.init = function(server, events) {
   log('Init sockets')
   // authorization middleware
   io.use(function(socket, next) {
-    var handshakeData = socket.request
-    var token = handshakeData._query['token']
+    const handshakeData = socket.request
+    const token = handshakeData._query['token']
     if(!token) {
       const error = 'missing token in the socket'
-      console.log(error, socket)
+      console.log(error)
       socket.emit('unauthorized', error, function() {
         socket.disconnect('unauthorized')
        return
       })
     }
-    csgrant.verifyToken(token, function(err, decoded) {
+    socket.token = token
+    csgrant.verifyToken(socket.token, function(err, decoded) {
       // function to call when unauthorized
       var unauthorizedAccess = function(error) {
         socket.emit('unauthorized', error, function() {
@@ -128,7 +130,6 @@ exports.init = function(server, events) {
     })
 
     events.on('resource', function(resource, operation, users) {
-      const user = users[0]
       const data = {resource: resource, operation: operation}
       // notify the users on sockets with appropriate identities
       userSockets.notifyUsers(users, 'resource', data)
