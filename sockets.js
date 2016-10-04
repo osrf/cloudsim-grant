@@ -36,7 +36,7 @@ function SocketDict() {
       return
     // new socket
     this.sockets.push(socket)
-    log('add socket: ' + socket + ', identities: ' + socket.identities);
+    log('add socket: ', this.sockets.length , 'identities:', socket.identities)
   }
 
   // remove socket
@@ -45,6 +45,7 @@ function SocketDict() {
     const index = this.sockets.indexOf(socket)
     if (index > -1) {
       // remove
+      log('remove socket: ', index)
       this.sockets.splice(index,1)
       return
     }
@@ -52,7 +53,9 @@ function SocketDict() {
 
   // Notifies a list of users, if they are in any socket
   this.notifyUsers = function (users, channel, data) {
-    log('notify users ' + users)
+    log('notify users:', users)
+    log('# sockets:', this.sockets.length)
+
     for (let socket of this.sockets) {
       // verify token again (as it may have expired)
       csgrant.verifyToken(socket.token, function(err, decoded) {
@@ -61,9 +64,10 @@ function SocketDict() {
           return
         }
         // token is good. Any users in its identities?
-        if (AnyOfUsersInIdentities(users, decoded.identities))
-console.log('emit!', users,  channel, data)
+        if (AnyOfUsersInIdentities(users, decoded.identities)) {
+          log('emit!', users,  channel, data)
           socket.emit(channel, data)
+        }
       })
     }
   }
