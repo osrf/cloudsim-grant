@@ -78,7 +78,6 @@ function init(adminUser, resources, databaseName, databaseUrl, server, cb) {
 
 // read emissions from the database
 function loadPermissions(adminUser, resources, cb) {
-
   // callback for db operations
   const callback = function(e, r) {
     if (e) {
