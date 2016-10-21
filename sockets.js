@@ -53,23 +53,23 @@ function SocketDict() {
 
   // Notifies a list of users, if they are in any socket
   this.notifyUsers = function (users, channel, data) {
-    log('notify users:', users)
-    log('# sockets:', this.sockets.length)
-
+    log('\nnotify users:', users, channel, data)
+    log('  -# sockets:', this.sockets.length)
     for (let socket of this.sockets) {
-      // verify token again (as it may have expired)
-      csgrant.verifyToken(socket.token, function(err, decoded) {
-        if (err) {
-          console.log('Error verifying token: ' + err )
-          return
-        }
-        // token is good. Any users in its identities?
-        if (AnyOfUsersInIdentities(users, decoded.identities)) {
-          log('emit!', users,  channel, data)
+      log('  -socket identities:', socket.identities)
+      if (AnyOfUsersInIdentities(users, socket.identities)) {
+        log('  --notifying')
+        csgrant.verifyToken(socket.token, function(err, decoded) {
+          if (err) {
+            console.error('Error verifying token: ' + err )
+            return
+          }
+          log('  --emit channel:', channel, 'data:', data)
           socket.emit(channel, data)
-        }
-      })
+        })
+      }
     }
+    log('end notify\n')
   }
 
   // Notify everybody....
@@ -100,6 +100,7 @@ exports.init = function(server, events) {
     csgrant.verifyToken(socket.token, function(err, decoded) {
       // function to call when unauthorized
       var unauthorizedAccess = function(error) {
+        console.error('unauthorizedAccess:', error)
         socket.emit('unauthorized', error, function() {
           socket.disconnect('unauthorized');
         });
@@ -116,12 +117,17 @@ exports.init = function(server, events) {
         console.error('Invalid token. No identities provided')
         var error = {"message": "no identities provided"}
         unauthorizedAccess(error)
-        // return an error
         return
       }
       socket.identities = decoded.identities
       next()
     })
+  })
+
+  events.on('resource', function(resource, operation, users) {
+    const data = {resource: resource, operation: operation}
+    // notify the users on sockets with appropriate identities
+    userSockets.notifyUsers(users, 'resource', data)
   })
 
   io.on('connection', function (socket) {
@@ -133,11 +139,6 @@ exports.init = function(server, events) {
       userSockets._removeSocket(socket)
     })
 
-    events.on('resource', function(resource, operation, users) {
-      const data = {resource: resource, operation: operation}
-      // notify the users on sockets with appropriate identities
-      userSockets.notifyUsers(users, 'resource', data)
-    })
   })
   // allow others to send/receive messages
   return io
