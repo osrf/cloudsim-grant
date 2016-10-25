@@ -50,7 +50,6 @@ function SocketDict() {
       return
     }
   }
-
   // Notifies a list of users, if they are in any socket
   this.notifyUsers = function (users, channel, data) {
     log('\nnotify users:', users, channel, data)
@@ -58,7 +57,7 @@ function SocketDict() {
     for (let socket of this.sockets) {
       log('  -socket identities:', socket.identities)
       if (AnyOfUsersInIdentities(users, socket.identities)) {
-        log('  --notifying')
+        log('  --notifying', socket.identities)
         csgrant.verifyToken(socket.token, function(err, decoded) {
           if (err) {
             console.error('Error verifying token: ' + err )

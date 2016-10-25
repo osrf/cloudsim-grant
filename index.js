@@ -735,8 +735,18 @@ function resource(req, res) {
 }
 
 // this returns a copy of the internal database.
-function copyInternalDatabase() {
-  const res = JSON.parse(JSON.stringify(resources))
+// when resource is defined, it only gets the resource data
+// and permission. When resource is null or undefined, the
+// entire db is returned
+function copyInternalDatabase(resource) {
+  let data = resources
+  if (resource) {
+    data = resources[resource]
+    if (!data) {
+      return {}
+    }
+  }
+  const res = JSON.parse(JSON.stringify(data))
   return res
 }
 
