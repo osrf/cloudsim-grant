@@ -1,6 +1,5 @@
 'use strict'
 
-const util = require("util")
 const jstoken = require("./token")
 const model = require("./model")
 const download =  require('./download')
@@ -112,35 +111,36 @@ function loadPermissions(adminUser, resources, cb) {
       const item = items[i]
       log(' [' + i + '/' + items.length + '] ' + JSON.stringify(item, null, 2))
       switch (item.operation) {
-        case 'set': {
-          log('set')
-          setResource(item.data.owner,
+      case 'set': {
+        log('set')
+        setResource(item.data.owner,
                       item.data.resource,
                       item.data.data,
                       callback)
-        }
         break
-        case 'grant': {
-          log('grant ')
-          grantPermission(item.data.granter,
+      }
+      case 'grant': {
+        log('grant ')
+        grantPermission(item.data.granter,
                           item.data.grantee,
                           item.data.resource,
                           item.data.readOnly,
                           callback)
-        }
         break
-        case 'revoke': {
-          log('revoke')
-          revokePermission(item.data.granter,
+      }
+      case 'revoke': {
+        log('revoke')
+        revokePermission(item.data.granter,
                            item.data.grantee,
                            item.data.resource,
                            item.data.readOnly,
                            callback)
-        }
-        default: {
-          cb('Unknown operation "' + item.operation + '"')
-          return
-        }
+        break
+      }
+      default: {
+        cb('Unknown operation "' + item.operation + '"')
+        return
+      }
       }
     }
     cb(null)
@@ -197,12 +197,12 @@ function createResource (me, resource, data, cb) {
   setResource(me, resource, data, cb)
 }
 
-function deleteResourceSync (me, resource) {
-  if (resources[resource]) {
-    return setResourceSync(me, resource, null)
-  }
-  return {error: 'resource "' + resource +  '" does not exist', result: null}
-}
+// function deleteResourceSync (me, resource) {
+//   if (resources[resource]) {
+//     return setResourceSync(me, resource, null)
+//   }
+//   return {error: 'resource "' + resource +  '" does not exist', result: null}
+// }
 
 function deleteResource (me, resource, cb) {
   if(resources[resource]) {
@@ -254,7 +254,6 @@ function grantPermissionSync(me, user, resource, readOnly) {
       return {error: null, success: true, message: '"' + user +
          '" is already authorized for "read only" for "'
          + resource + '"'}
-      return
     }
     // Is already write
     if ((readOnly == false) && (current.readOnly == false))
@@ -266,14 +265,14 @@ function grantPermissionSync(me, user, resource, readOnly) {
     if ((readOnly == true) && (current.readOnly == false))
     {
       current.readOnly = true
-      message: '"' + user + '" access for "'
+      message = '"' + user + '" access for "'
          + resource + '" has been downgraded to "read only"'
     }
     // Is read only and we want to upgrade
     else if ((readOnly == false) && (current.readOnly == true))
     {
       current.readOnly = false
-      message: '"' + user + '" access for "'
+      message = '"' + user + '" access for "'
          + resource + '" has been upgraded to "write"'
     }
     else {
@@ -439,20 +438,20 @@ function grant(req, res) {
   const readOnly = JSON.parse(data.readOnly)
   grantPermission(requester,
     grantee, resource, readOnly, (err, success, message)=>{
-    let msg = message
-    if (err) {
-      success = false
-      msg =  err
-    }
-    const r ={ operation: 'grant',
+      let msg = message
+      if (err) {
+        success = false
+        msg =  err
+      }
+      const r ={ operation: 'grant',
                requester: requester,
                grantee: grantee,
                resource: resource,
                readOnly: readOnly,
                success: success,
                msg: msg }
-    res.jsonp(r)
-  })
+      res.jsonp(r)
+    })
 }
 
 // route for revoke
@@ -472,12 +471,12 @@ function revoke(req, res) {
                    grantee,
                    resource,
                    readOnly, (err, success, message)=>{
-    let msg = message
-    if (err) {
-      success = false
-      msg = err
-    }
-    const r ={  operation: 'revoke',
+                     let msg = message
+                     if (err) {
+                       success = false
+                       msg = err
+                     }
+                     const r ={  operation: 'revoke',
                 requester: requester,
                 grantee: grantee,
                 resource: resource,
@@ -485,8 +484,8 @@ function revoke(req, res) {
                 success: success,
                 msg: msg
              }
-    res.jsonp(r)
-  })
+                     res.jsonp(r)
+                   })
 }
 
 /// user: the requester... his permissions will be first
@@ -573,9 +572,6 @@ function authenticate(req, res, next) {
   // decrypt and verify token
   jstoken.verifyToken(token, (err, decoded) => {
     if(err) {
-      let msg = '' + err
-      msg = msg.trim()
-
       if (err.message === "PEM_read_bio_PUBKEY failed"){
         return res.status(500).jsonp({success:false,
           error: 'public auth key is missing'})
@@ -630,8 +626,8 @@ function ownsResource(resource, readOnly) {
           + ' to access resource "' + resourceName + '"'
       log(msg)
       return res.status(401).jsonp({
-         "success": false,
-         "error": msg
+        "success": false,
+        "error": msg
       })
     }
     else {
@@ -658,14 +654,11 @@ function ownsResource(resource, readOnly) {
 // specified in req.user
 function userResources(req, res, next) {
   readAllResourcesForUser(req.identities, (err, items) => {
-    const r = {success: false,
-               operation: 'get all resource',
-               requester: req.user}
     if(err) {
       return res.status(500).jsonp({
-                                     success: false,
-                                     "error": err
-                                   })
+        success: false,
+        "error": err
+      })
     }
     req.userResources = items
     next()

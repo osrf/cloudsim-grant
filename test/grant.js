@@ -4,10 +4,10 @@ const should = require('should')
 const csgrant = require('../index')
 const model = require('../model')
 const token = require('../token')
-const util = require('util')
 
 // true: log appears on the console, false: no logging
-const log = false? console.log: ()=>{}
+const enableLog = false
+const log = enableLog ? console.log: ()=>{}
 
 // we need keys for this test
 const keys = token.generateKeys()
@@ -22,24 +22,24 @@ let eventsList = []
 describe('<Unit Test grant>', function() {
 
   before(function(done) {
-      model.clearDb()
-      token.signToken({identities: ['me']}, (e, tok)=>{
-        if(e) {
-          should.fail(e)
-        }
-        meToken = tok
-        done()
-      })
+    model.clearDb()
+    token.signToken({identities: ['me']}, (e, tok)=>{
+      if(e) {
+        should.fail(e)
+      }
+      meToken = tok
+      done()
+    })
   })
 
   before(function(done) {
-      csgrant.events.on('resource', (resource, operation, users)=> {
-          eventsList.push({resource: resource,
+    csgrant.events.on('resource', (resource, operation, users)=> {
+      eventsList.push({resource: resource,
                            operation: operation,
                            users: users})
-          log('RESOURCE event:', resource, operation, eventsList.length)
-      })
-      done()
+      log('RESOURCE event:', resource, operation, eventsList.length)
+    })
+    done()
   })
 
   describe('Toaster sharing:', function() {
@@ -60,7 +60,7 @@ describe('<Unit Test grant>', function() {
     it('should be possible to add a toaster', (done) => {
       csgrant.createResource('me', 'toaster', {slots:2}, (e)=>{
         if(e)
-            should.fail(e)
+          should.fail(e)
         eventsList.length.should.equal(1)
         eventsList[0].resource.should.equal('toaster')
         eventsList[0].operation.should.equal('create')
@@ -86,40 +86,40 @@ describe('<Unit Test grant>', function() {
     })
 
     it('there should be resources', (done) => {
-       const req = {
-                     user: 'me',
-                     identities: ['me']
-                   }
-       const response = {
-          status: function(st) {
-            st.should.equal(200)
-            return this
-          },
-          jsonp: function (r) {
-            if(!r.success) {
-              console.log('error:', r)
-              should.fail('toaster not in all resources')
-            }
-            r.result.length.should.equal(1)
-            r.result[0].name.should.equal('toaster')
-            done()
+      const req = {
+        user: 'me',
+        identities: ['me']
+      }
+      const response = {
+        status: function(st) {
+          st.should.equal(200)
+          return this
+        },
+        jsonp: function (r) {
+          if(!r.success) {
+            console.log('error:', r)
+            should.fail('toaster not in all resources')
           }
-       }
+          r.result.length.should.equal(1)
+          r.result[0].name.should.equal('toaster')
+          done()
+        }
+      }
        // combine 2 middleware
-       csgrant.userResources(req, response, ()=>{
-         req.userResources.length.should.equal(1)
-         csgrant.allResources(req, response)
-       })
+      csgrant.userResources(req, response, ()=>{
+        req.userResources.length.should.equal(1)
+        csgrant.allResources(req, response)
+      })
     })
 
     it('creator should have access to resource', (done) => {
-       const req = {
-                     user: 'me',
-                     identities: ['bob','me','alice']
-                   }
-       const res = class ServerResponse {}
-       const owns = csgrant.ownsResource("toaster", false)
-       owns(req, res, ()=> {
+      const req = {
+        user: 'me',
+        identities: ['bob','me','alice']
+      }
+      const res = class ServerResponse {}
+      const owns = csgrant.ownsResource("toaster", false)
+      owns(req, res, ()=> {
 
         should.exist(req.user)
         req.user.should.equal('me')
@@ -136,49 +136,49 @@ describe('<Unit Test grant>', function() {
     })
 
     it('random users should not have access to resource', (done) => {
-       const req = {
-                     user: 'me',
-                     identities: ['bob', 'alice']
-                   }
+      const req = {
+        user: 'me',
+        identities: ['bob', 'alice']
+      }
 
-       const res =  {
-          jsonp: function(r) {
-            done()
-          },
-          status: function (code) {
-            code.should.equal(401)
-            return this
-          }
-       }
+      const res =  {
+        jsonp: function() {
+          done()
+        },
+        status: function (code) {
+          code.should.equal(401)
+          return this
+        }
+      }
 
-       const owns = csgrant.ownsResource("toaster", false)
-       owns(req, res, ()=> {
+      const owns = csgrant.ownsResource("toaster", false)
+      owns(req, res, ()=> {
       })
     })
 
     it('the resource can be obtain via a route', (done) => {
-       const req = {
-                     user: 'me',
-                     identities: ['me'],
-                     resourceName: 'toaster',
-                   }
+      const req = {
+        user: 'me',
+        identities: ['me'],
+        resourceName: 'toaster',
+      }
 
-       const res = {
-          jsonp: function (r) {
-            if(!r.success) {
-              should.fail('no toaster in resource route')
-            }
-            r.result.name.should.equal('toaster')
-            r.result.data.slots.should.equal(2)
-            done()
+      const res = {
+        jsonp: function (r) {
+          if(!r.success) {
+            should.fail('no toaster in resource route')
           }
-       }
-       const owns = csgrant.ownsResource("toaster", false )
+          r.result.name.should.equal('toaster')
+          r.result.data.slots.should.equal(2)
+          done()
+        }
+      }
+      const owns = csgrant.ownsResource("toaster", false )
        // we call the middleware, mocking the next() call to invoke
        // csgrant.resource with the req and res
-       owns(req, res, ()=>{
+      owns(req, res, ()=>{
         csgrant.resource(req, res)
-       })
+      })
 
     })
 
@@ -186,27 +186,27 @@ describe('<Unit Test grant>', function() {
     it('should be possible to share the toaster with joe', (done) => {
       eventsList = []
       const req = {
-                    headers:{authorization: meToken},
-                    user: 'me',
-                    identities: ['me'],
-                    body: {
-                      grantee: 'joe',
-                      resource: 'toaster',
-                      readOnly: false
-                    }
+        headers:{authorization: meToken},
+        user: 'me',
+        identities: ['me'],
+        body: {
+          grantee: 'joe',
+          resource: 'toaster',
+          readOnly: false
+        }
 
-                  }
+      }
       const response = {
         jsonp: function (r) {
           if(!r.success) {
             should.fail('cannot grant')
           }
-        eventsList.length.should.equal(1)
-        eventsList[0].resource.should.equal('toaster')
-        eventsList[0].operation.should.equal('grant')
-        eventsList[0].users.length.should.equal(2)
-        eventsList[0].users[0].should.equal('me')
-        eventsList[0].users[1].should.equal('joe')
+          eventsList.length.should.equal(1)
+          eventsList[0].resource.should.equal('toaster')
+          eventsList[0].operation.should.equal('grant')
+          eventsList[0].users.length.should.equal(2)
+          eventsList[0].users[0].should.equal('me')
+          eventsList[0].users[1].should.equal('joe')
           done()
         }
       }
@@ -231,15 +231,15 @@ describe('<Unit Test grant>', function() {
     })
 
     it('joe should have write access to resource', (done) => {
-       const req = {
-                     user: 'joe',
-                     identities: ['joe']
-                   }
+      const req = {
+        user: 'joe',
+        identities: ['joe']
+      }
 
-       const res = {}
+      const res = {}
 
-       const owns = csgrant.ownsResource("toaster", false)
-       owns(req, res, ()=> {
+      const owns = csgrant.ownsResource("toaster", false)
+      owns(req, res, ()=> {
 
         should.exist(req.user)
         req.user.should.equal('joe')
@@ -283,14 +283,14 @@ describe('<Unit Test grant>', function() {
 
     it('should be possible to revoke joe\'s toaster access', (done) => {
       const req = {
-                    user: 'me',
-                    identities: ['me'],
-                    body: {
-                      grantee: 'joe',
-                      resource: 'toaster',
-                      readOnly: false
-                    }
-                  }
+        user: 'me',
+        identities: ['me'],
+        body: {
+          grantee: 'joe',
+          resource: 'toaster',
+          readOnly: false
+        }
+      }
       const response = {
         jsonp: function (r) {
           if(!r.success) {
@@ -312,40 +312,40 @@ describe('<Unit Test grant>', function() {
     })
 
     it('joe should not have write access to resource', (done) => {
-       const req = {
-                     user: 'joe',
-                     identities: ['joe']
-                   }
+      const req = {
+        user: 'joe',
+        identities: ['joe']
+      }
 
-       let res =  {
-         status : function(number) {
-           number.should.equal(401)
-           return this
-         },
-         jsonp: function(data) {
+      let res =  {
+        status : function(number) {
+          number.should.equal(401)
+          return this
+        },
+        jsonp: function(data) {
           data.success.should.equal(false)
           should.exist(data.error)
           done()
-         }
+        }
 
-       }
+      }
 
-       const owns = csgrant.ownsResource("toaster", false)
-       owns(req, res, ()=> {
-         should.fail()
-       })
+      const owns = csgrant.ownsResource("toaster", false)
+      owns(req, res, ()=> {
+        should.fail()
+      })
     })
 
     it('should be possible to share the toaster with jack', (done) => {
       const req = {
-                    user: 'me',
-                    identities: ['me'],
-                    body: {
-                      grantee: 'jack',
-                      resource: 'toaster',
-                      readOnly: true
-                    }
-                  }
+        user: 'me',
+        identities: ['me'],
+        body: {
+          grantee: 'jack',
+          resource: 'toaster',
+          readOnly: true
+        }
+      }
       const response = {
         jsonp: function (r) {
           if(!r.success) {
@@ -368,21 +368,21 @@ describe('<Unit Test grant>', function() {
     })
 
     it('jack should have read access to resource', (done) => {
-       const req = {
-                     user: 'jack',
-                     identities: ['jack']
-                   }
+      const req = {
+        user: 'jack',
+        identities: ['jack']
+      }
 
-       let res =  {
-         status : function(number) {
-           console.log('status!!',number)
+      let res =  {
+        status : function(number) {
+          console.log('status!!',number)
 
-         }
+        }
 
-       }
+      }
 
-       const owns = csgrant.ownsResource("toaster", true)
-       owns(req, res, ()=> {
+      const owns = csgrant.ownsResource("toaster", true)
+      owns(req, res, ()=> {
 
         should.exist(req.user)
         req.user.should.equal('jack')
@@ -432,14 +432,14 @@ describe('<Unit Test grant>', function() {
     it('should be possible to share the blender with joe', (done) => {
       eventsList = []
       const req = {
-                    user: 'jack',
-                    identities: ['jack'],
-                    body: {
-                      grantee: 'joe',
-                      resource: 'blender',
-                      readOnly: true
-                    }
-                  }
+        user: 'jack',
+        identities: ['jack'],
+        body: {
+          grantee: 'joe',
+          resource: 'blender',
+          readOnly: true
+        }
+      }
       const response = {
         jsonp: function (r) {
           if(!r.success) {
@@ -501,9 +501,9 @@ describe('<Unit Test grant>', function() {
 
       // the blender should be gone since it's shared with another user
       // who has readOnly permission
-      csgrant.readResource('joe', 'blender', (e, resource ) =>{
+      csgrant.readResource('joe', 'blender', (e) =>{
          // blender resource will not be deleted. It'll be an orphan for now.
-         should.not.exist(e)
+        should.not.exist(e)
 
         // toaster should still be accessible since jack only had readOnly
         // access to this resource

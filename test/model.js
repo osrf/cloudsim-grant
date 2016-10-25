@@ -8,8 +8,8 @@ const model = require('../model')
 describe('<Unit Test grant database (model.js)>', function() {
 
   before(function(done) {
-      model.clearDb()
-      done()
+    model.clearDb()
+    done()
   })
 
   describe('numbering a resource:', function() {

@@ -41,8 +41,8 @@ client.on("error", function (err) {
   console.log("Redis error: " + err);
 })
 
-client.on("connect", function (err) {
-    log("Redis connected");
+client.on("connect", function () {
+  log("Redis connected");
 })
 
 if (process.env.NODE_ENV === "test") {
