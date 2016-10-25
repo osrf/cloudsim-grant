@@ -466,6 +466,21 @@ describe('<Unit Test grant>', function() {
       })
     })
 
+    it('should be possible to see the database', (done) => {
+      // get all the db
+      const db = csgrant.copyInternalDatabase()
+      // get a single elem
+      const toaster = csgrant.copyInternalDatabase('toaster')
+      // get unknown resource
+      const friend = csgrant.copyInternalDatabase('imaginary_friend')
+      should.exist(db.toaster)
+      db.toaster.data.slots.should.equal(4)
+      toaster.data.slots.should.equal(4)
+      // empty friend, should be {}
+      Object.keys(friend).length.should.equal(0)
+      done()
+    })
+
     // delete jack!
     it('should be possible to delete jack', (done) => {
       eventsList = []
