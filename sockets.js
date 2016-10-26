@@ -2,10 +2,7 @@
 
 const csgrant = require('./index')
 
-var util = require('util');
-var adminUser = 'admin';
-if (process.env.CLOUDSIM_ADMIN)
-  adminUser = process.env.CLOUDSIM_ADMIN;
+const util = require('util');
 
 exports.showLog = false
 const log = exports.showLog? console.log: ()=>{}
@@ -58,7 +55,7 @@ function SocketDict() {
       log('  -socket identities:', socket.identities)
       if (AnyOfUsersInIdentities(users, socket.identities)) {
         log('  --notifying', socket.identities)
-        csgrant.verifyToken(socket.token, function(err, decoded) {
+        csgrant.verifyToken(socket.token, function(err) {
           if (err) {
             console.error('Error verifying token: ' + err )
             return
@@ -92,7 +89,7 @@ exports.init = function(server, events) {
       console.log(error)
       socket.emit('unauthorized', error, function() {
         socket.disconnect('unauthorized')
-       return
+        return
       })
     }
     socket.token = token
@@ -105,16 +102,17 @@ exports.init = function(server, events) {
         });
       }
       // verify the token
+      let error
       if (err) {
         console.error('Error: ' + err.message);
-        var error = {"message": "unauthorized"};
+        error = {"message": "unauthorized"};
         unauthorizedAccess(error);
         return;
       }
       log(util.inspect(decoded))
       if (!decoded.identities || decoded.identities.length == 0) {
         console.error('Invalid token. No identities provided')
-        var error = {"message": "no identities provided"}
+        error = {"message": "no identities provided"}
         unauthorizedAccess(error)
         return
       }

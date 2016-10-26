@@ -20,7 +20,7 @@ exports.downloadFilePath = function (req, res) {
   // req.fileInfo might be a string, or an object with a path property
   const filePath = req.fileInfo.path?req.fileInfo.path:req.fileInfo
   // req may contain a MIME type (zip by default)
-  const contentType = req.fileInfo.type?req.fileInfo.type:'application/zip'
+  // const contentType = req.fileInfo.type?req.fileInfo.type:'application/zip'
   // the file may have a name to be saved to when downloaded
   const x = req.fileInfo.name
   const dName = x?x:path.basename(filePath)
@@ -28,11 +28,11 @@ exports.downloadFilePath = function (req, res) {
   // load and serve the file
   fs.stat(filePath, function(err, stat) {
     if(err) {
-        if('ENOENT' === err.code) {
-            res.statusCode = 404
-            console.log('file "' + filePath + '" not found')
-            return res.end('Not Found');
-        }
+      if('ENOENT' === err.code) {
+        res.statusCode = 404
+        console.log('file "' + filePath + '" not found')
+        return res.end('Not Found');
+      }
     } else {
       res.setHeader('Content-type', 'application/zip')
       res.setHeader('Content-disposition', 'attachment; filename=' + dName)
@@ -40,13 +40,13 @@ exports.downloadFilePath = function (req, res) {
       var stream = fs.createReadStream(filePath);
       stream.pipe(res);
       stream.on('error', function() {
-          const msg = 'Internal Server Error while reading "' + dName  + '"'
-          console.log(msg, filePath)
-          return res.status(500).end(msg)
+        const msg = 'Internal Server Error while reading "' + dName  + '"'
+        console.log(msg, filePath)
+        return res.status(500).end(msg)
       })
       stream.on('end', function() {
-          console.log('"' + filePath + '" downloaded')
-          return res.end();
+        console.log('"' + filePath + '" downloaded')
+        return res.end();
       })
     }
   })

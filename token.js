@@ -13,33 +13,33 @@ let  authUrl = "not a url"
 // this function sets the keys. It is called automatically with
 // the values found in the .env file. Only the test needs to
 // call it directly.
-exports.initKeys = function(publicK, privateK, authUrl) {
+exports.initKeys = function(publicK, privateK, _authUrl) {
 
   if (publicK)
     publicKey = publicK.replace(/\\n/g, "\n");
   if (privateK)
     privateKey = privateK.replace(/\\n/g, "\n");
 
-  authUrl = authUrl
+  authUrl = _authUrl
 }
 
 // generates keys that can be used with jsonwebtoken
 exports.generateKeys = function() {
   var key = new NodeRSA({b: 512, e: 5});
 
-    key.setOptions({
-        encryptionScheme: {
-        scheme: 'pkcs1',
-        label: 'Optimization-Service'
+  key.setOptions({
+    encryptionScheme: {
+      scheme: 'pkcs1',
+      label: 'Optimization-Service'
     },
     signingScheme: {
-        saltLength: 25
+      saltLength: 25
     }
   });
 
   return {
-        "private" : key.exportKey('pkcs1-private-pem'),
-        "public"  : key.exportKey('pkcs8-public-pem')
+    "private" : key.exportKey('pkcs1-private-pem'),
+    "public"  : key.exportKey('pkcs8-public-pem')
   };
 }
 
