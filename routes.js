@@ -256,27 +256,27 @@ exports.setPermissionsRoutes = function(app) {
   // grant user permission to a resource
   // (add user to a group)
   app.post('/permissions',
-      csgrant.authenticate,
-      csgrant.grant)
+      routes.authenticate,
+      routes.grant)
 
   // revoke user permission
   // (delete user from a group)
   app.delete('/permissions',
-      csgrant.authenticate,
-      csgrant.revoke)
+      routes.authenticate,
+      routes.revoke)
 
   // get all user permissions for all resources
   app.get('/permissions',
-      csgrant.authenticate,
-      csgrant.userResources,
-      csgrant.allResources
+      routes.authenticate,
+      routes.userResources,
+      routes.allResources
   )
 
   // get user permissions for a resource
   app.get('/permissions/:resourceId',
-      csgrant.authenticate,
-      csgrant.ownsResource(':resourceId', true),
-      csgrant.resource
+      routes.authenticate,
+      routes.ownsResource(':resourceId', true),
+      routes.resource
   )
 
   /// param for resource name
