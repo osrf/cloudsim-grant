@@ -281,6 +281,29 @@ describe('<Unit Test grant>', function() {
       })
     })
 
+    it('should not be possible for an unauthorized user to revoke joe\'s ' +
+        'toaster access', (done) => {
+      const req = {
+        user: 'notme',
+        identities: ['notme'],
+        body: {
+          grantee: 'joe',
+          resource: 'toaster',
+          readOnly: false
+        }
+      }
+      const response = {
+        jsonp: function (r) {
+          if(!r.success) {
+            done()
+            return;
+          }
+          should.fail('FAIL')
+        }
+      }
+      csgrant.revoke(req, response)
+    })
+
     it('should be possible to revoke joe\'s toaster access', (done) => {
       const req = {
         user: 'me',
