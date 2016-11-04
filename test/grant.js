@@ -47,7 +47,13 @@ describe('<Unit Test grant>', function() {
       const req = {
         headers : {authorization: meToken}
       }
-      const res = {}
+      const res = {
+        status: function(s) {
+          console.log('satus:',s)
+          return this
+        },
+        jsonp: function(p) {console.log('jsonp:', p)}
+      }
       csgrant.authenticate(req, res, ()=> {
         should.exist(req.user)
         req.user.should.equal('me')
@@ -279,29 +285,6 @@ describe('<Unit Test grant>', function() {
           done()
         }
       })
-    })
-
-    it('should not be possible for an unauthorized user to revoke joe\'s ' +
-        'toaster access', (done) => {
-      const req = {
-        user: 'notme',
-        identities: ['notme'],
-        body: {
-          grantee: 'joe',
-          resource: 'toaster',
-          readOnly: false
-        }
-      }
-      const response = {
-        jsonp: function (r) {
-          if(!r.success) {
-            done()
-            return;
-          }
-          should.fail('FAIL')
-        }
-      }
-      csgrant.revoke(req, response)
     })
 
     it('should be possible to revoke joe\'s toaster access', (done) => {

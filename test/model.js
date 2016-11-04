@@ -101,4 +101,42 @@ describe('<Unit Test grant database (model.js)>', function() {
       })
     })
   })
+
+  describe('Datastore', function(){
+    it('should be able save and load data', (done) => {
+
+      // empty name, no good
+      model.saveData('', {data:0}, (err) => {
+        if (!err) {
+          should.fail('save with empty name')
+        }
+      })
+
+      // null name, no good
+      model.loadData(null, (err, data) => {
+console.log('ssss',err)
+        if (!err) {
+          should.fail('load empty name')
+        }
+      })
+
+      // object with random string data
+      const original = {data: "random: " +  Math.random()}
+
+      model.saveData('key-test', original, (err) => {
+        if(err)
+          should.fail(err)
+      })
+      model.loadData('key-test', (err, copy)=>{
+        if(err)
+          should.fail(err)
+        if (!copy)
+          should.fail('no data')
+        should(copy.data).be.eql(original.data, 'read error')
+        done()
+      })
+    })
+  })
+
+
 })
