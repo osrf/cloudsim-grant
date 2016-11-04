@@ -18,6 +18,7 @@ exports.saveData = model.saveData
 exports.loadData = model.loadData
 
 // routes
+exports.setPermissionsRoutes = routes.setPermissionsRoutes
 exports.grant = routes.grant
 exports.revoke = routes.revoke
 exports.downloadFilePath = download.downloadFilePath
