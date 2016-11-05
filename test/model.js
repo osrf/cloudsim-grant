@@ -114,7 +114,6 @@ describe('<Unit Test grant database (model.js)>', function() {
 
       // null name, no good
       model.loadData(null, (err, data) => {
-console.log('ssss',err)
         if (!err) {
           should.fail('load empty name')
         }

@@ -40,6 +40,7 @@ exports.deleteResource = grant.deleteResource
 exports.deleteUser = grant.deleteUser
 
 // util
+exports.dump = grant.dump
 exports.isAuthorized = grant.isAuthorized
 exports.readAllResourcesForUser = grant.readAllResourcesForUser
 exports.getNextResourceId = model.getNextResourceId
