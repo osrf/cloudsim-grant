@@ -1,11 +1,11 @@
 'use strict'
 
-const jstoken = require('./token')
-const model = require('./model')
 const download =  require('./download')
 const grant = require('./grant')
+const jstoken = require('./token')
+const model = require('./model')
 const routes = require('./routes')
-
+const sockets = require('./sockets')
 
 // event emitter
 exports.events = grant.events
@@ -50,7 +50,8 @@ exports.signToken = jstoken.signToken
 exports.verifyToken = jstoken.verifyToken
 
 // republish submodules (mainly for testing)
+exports.download = download
 exports.token = jstoken
 exports.model = model
-
-
+exports.routes = routes
+exports.sockets = sockets
