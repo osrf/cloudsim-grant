@@ -103,6 +103,18 @@ describe('<Unit Test grant database (model.js)>', function() {
   })
 
   describe('Datastore', function(){
+    it('should not have data for new key on startup', (done) => {
+
+      model.loadData('key-test', (err, data)=>{
+        if(err)
+          should.fail(err)
+        if (!data)
+          should.fail('no data')
+        should(data).be.empty
+        done()
+      })
+    })
+
     it('should be able save and load data', (done) => {
 
       // empty name, no good
@@ -131,6 +143,37 @@ describe('<Unit Test grant database (model.js)>', function() {
         if (!copy)
           should.fail('no data')
         should(copy.data).be.eql(original.data, 'read error')
+        done()
+      })
+    })
+
+    it('should be able to override previously saved data', (done) => {
+
+      let original
+
+      model.loadData('key-test', (err, oldData)=>{
+        if(err)
+          should.fail(err)
+        if (!oldData)
+          should.fail('no data')
+        original = oldData
+      })
+
+      // new object with random string data
+      const newData = {data: "random: " +  Math.random()}
+      should(newData).not.be.equal(original)
+
+      model.saveData('key-test', newData, (err) => {
+        if(err)
+          should.fail(err)
+      })
+
+      model.loadData('key-test', (err, data)=>{
+        if(err)
+          should.fail(err)
+        if (!data)
+          should.fail('no data')
+        should(data.data).be.equal(newData.data)
         done()
       })
     })
