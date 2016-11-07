@@ -34,9 +34,11 @@ describe('<Unit Test grant>', function() {
 
   before(function(done) {
     csgrant.events.on('resource', (resource, operation, users)=> {
-      eventsList.push({resource: resource,
-                           operation: operation,
-                           users: users})
+      eventsList.push({
+        resource: resource,
+        operation: operation,
+        users: users
+      })
       log('RESOURCE event:', resource, operation, eventsList.length)
     })
     done()
@@ -47,7 +49,13 @@ describe('<Unit Test grant>', function() {
       const req = {
         headers : {authorization: meToken}
       }
-      const res = {}
+      const res = {
+        status: function(s) {
+          console.log('satus:',s)
+          return this
+        },
+        jsonp: function(p) {console.log('jsonp:', p)}
+      }
       csgrant.authenticate(req, res, ()=> {
         should.exist(req.user)
         req.user.should.equal('me')

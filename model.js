@@ -69,10 +69,12 @@ function push(operation, data) {
 
 // revokes a permission
 function revoke(granter, grantee, resource, readOnly ) {
-  const data = {resource: resource,
-                granter: granter,
-                grantee: grantee,
-                readOnly: readOnly}
+  const data = {
+    resource: resource,
+    granter: granter,
+    grantee: grantee,
+    readOnly: readOnly
+  }
   push('revoke', data)
 }
 
@@ -81,18 +83,22 @@ function revoke(granter, grantee, resource, readOnly ) {
 // deletss the resource if data is null or undefined
 // updates the resource with new data if it exists
 function setResource(owner, resource, resourceData) {
-  const data = { resource: resource,
-                 data: resourceData,
-                 owner: owner}
+  const data = {
+    resource: resource,
+    data: resourceData,
+    owner: owner
+  }
   push('set', data)
 }
 
 // share a resource with a new user
 function grant(granter, grantee, resource, readOnly ) {
-  const data = {resource: resource,
-                granter: granter,
-                grantee: grantee,
-                readOnly: readOnly}
+  const data = {
+    resource: resource,
+    granter: granter,
+    grantee: grantee,
+    readOnly: readOnly
+  }
   push('grant', data)
 }
 
@@ -138,6 +144,50 @@ function getNextResourceId(resourceType, cb) {
   });
 }
 
+
+// save ab object to the db (after JSON string conversion)
+// name: the key name for the data
+// value: an object that contains data
+// cb: a callback with an error (null means success)
+function saveData(name, value, cb) {
+  if (!name || name === '') {
+    cb("Error saving data: empty key name")
+    return
+  }
+  const strData = JSON.stringify(value)
+  const keyName = listName + ":" + name
+  client.set(keyName, strData, (err, reply) => {
+    if (reply === 'OK') {
+      cb()
+      return
+    }
+    cb(err)
+  })
+}
+
+// save a Json object to the db
+// name: the key name for the data
+// cb: a callback (err, data) the data is a JSON object
+function loadData(name, cb) {
+  if (!name || name === '') {
+    cb("Error loading data: empty key name")
+    return
+  }
+  const keyName = listName + ":" + name
+  client.get(keyName, (err, strData) => {
+    if (err) {
+      cb(err)
+      return
+    }
+    // not expecting JSON.parse to throw
+    // because data was stringified in save
+    const data = JSON.parse(strData)
+    cb(null, data)
+  })
+}
+
+
+// Resources and permissions
 exports.init = init
 exports.setDatabaseUrl = setDatabaseUrl
 exports.listName = listName
@@ -147,3 +197,9 @@ exports.setResource = setResource
 exports.readDb = readDb
 exports.clearDb = clearDb
 exports.getNextResourceId = getNextResourceId
+
+
+// save and load data directly
+exports.saveData = saveData
+exports.loadData = loadData
+
