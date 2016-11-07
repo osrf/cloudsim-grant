@@ -114,7 +114,7 @@ describe('<Unit Test grant database (model.js)>', function() {
       })
     })
 
-    it('should be able save and load data', (done) => {
+    it('should be able to save and load data', (done) => {
 
       // empty name, no good
       model.saveData('', {data:0}, (err) => {
