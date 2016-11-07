@@ -108,9 +108,8 @@ describe('<Unit Test grant database (model.js)>', function() {
       model.loadData('key-test', (err, data)=>{
         if(err)
           should.fail(err)
-        if (!data)
-          should.fail('no data')
-        should(data).be.empty
+        if (data)
+          should(data).be.empty
         done()
       })
     })
