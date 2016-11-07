@@ -14,10 +14,14 @@
   "author": "hugo@osrfoundation.org",
   "license": "ISC",
   "devDependencies": {
+    "body-parser": "^1.15.2",
+    "cors": "^2.8.1",
     "eslint": "^3.8.1",
+    "express": "^4.14.0",
     "istanbul": "^0.4.5",
     "istanbul-coveralls": "^1.0.3",
     "mocha": "^3.0.2",
+    "morgan": "^1.7.0",
     "should": "^11.1.0"
   },
   "dependencies": {
