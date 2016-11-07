@@ -69,10 +69,12 @@ function push(operation, data) {
 
 // revokes a permission
 function revoke(granter, grantee, resource, readOnly ) {
-  const data = {resource: resource,
-                granter: granter,
-                grantee: grantee,
-                readOnly: readOnly}
+  const data = {
+    resource: resource,
+    granter: granter,
+    grantee: grantee,
+    readOnly: readOnly
+  }
   push('revoke', data)
 }
 
@@ -81,18 +83,22 @@ function revoke(granter, grantee, resource, readOnly ) {
 // deletss the resource if data is null or undefined
 // updates the resource with new data if it exists
 function setResource(owner, resource, resourceData) {
-  const data = { resource: resource,
-                 data: resourceData,
-                 owner: owner}
+  const data = {
+    resource: resource,
+    data: resourceData,
+    owner: owner
+  }
   push('set', data)
 }
 
 // share a resource with a new user
 function grant(granter, grantee, resource, readOnly ) {
-  const data = {resource: resource,
-                granter: granter,
-                grantee: grantee,
-                readOnly: readOnly}
+  const data = {
+    resource: resource,
+    granter: granter,
+    grantee: grantee,
+    readOnly: readOnly
+  }
   push('grant', data)
 }
 

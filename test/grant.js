@@ -34,9 +34,11 @@ describe('<Unit Test grant>', function() {
 
   before(function(done) {
     csgrant.events.on('resource', (resource, operation, users)=> {
-      eventsList.push({resource: resource,
-                           operation: operation,
-                           users: users})
+      eventsList.push({
+        resource: resource,
+        operation: operation,
+        users: users
+      })
       log('RESOURCE event:', resource, operation, eventsList.length)
     })
     done()

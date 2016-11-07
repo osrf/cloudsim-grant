@@ -1,8 +1,6 @@
 'use strict'
 
-const jstoken = require("./token")
 const model = require("./model")
-const download =  require('./download')
 const sockets = require('./sockets')
 const EventEmitter = require('events')
 
@@ -283,9 +281,10 @@ function grantPermissionSync(me, user, resource, readOnly) {
   else
   {
     // Grant brand new permission
-    let x = { readOnly : readOnly,
-              authority : me
-            }
+    let x = {
+      readOnly : readOnly,
+      authority : me
+    }
     resources[resource].permissions[user] = x
 
     const readOnlyTxt = readOnly? "read only" : "write"
@@ -455,62 +454,6 @@ function readAllResourcesForUser(identities, cb) {
     }
   }
   cb(null, items)
-}
-
-// This function returns a middleware function that checks wether a
-// user has access to a resource.
-//  - resourceName is the name of the resource
-//  - readOnly specifies the access
-function ownsResource(resource, readOnly) {
-
-  return function(req, res, next) {
-    log('ownsResource', resource, 'readOnly', readOnly)
-    let resourceName = resource
-    // check if the resource name is a route param
-    // see express route params
-    if (resourceName.startsWith(':')) {
-      const param = resourceName.substr(1)
-      // we are counting on a previous param middleware
-      // to have put the value in the req for us
-      resourceName = req[param]
-    }
-
-    // check all identities and proceed if any one of them is authorized
-    for (let i = 0; i < req.identities.length; ++i) {
-      const authorized = isAuthorizedSync(
-          req.identities[i], resourceName, readOnly)
-      if (authorized) {
-        req.authorizedIdentity = req.identities[i]
-        break
-      }
-    }
-
-    if(!req.authorizedIdentity){
-      const msg = 'insufficient permission for user "' + req.user + '"'
-          + ' to access resource "' + resourceName + '"'
-      log(msg)
-      return res.status(401).jsonp({
-        "success": false,
-        "error": msg
-      })
-    }
-    else {
-      // read the resource, keep a local copy in the req
-      readResource(req.authorizedIdentity, resourceName, (err, data) => {
-        if(err) {
-          return res.status(500).jsonp({
-            "success": false,
-            "error": err
-          })
-        }
-        log('Authorized resource: ' + resourceName )
-        req.resourceData = data
-        req.resourceName = resourceName
-        req.resourcePermissions = data.permissions[0].permissions
-        next()
-      })
-    }
-  }
 }
 
 // this returns a copy of the internal database.

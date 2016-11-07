@@ -23,22 +23,29 @@ exports.grant = function(req, res) {
   const grantee  = data.grantee
   const resource = data.resource
   const readOnly = JSON.parse(data.readOnly)
-  grant.grantPermission(requester,
-    grantee, resource, readOnly, (err, success, message)=>{
+  grant.grantPermission(
+    requester,
+    grantee,
+    resource,
+    readOnly,
+    (err, success, message)=>{
       let msg = message
       if (err) {
         success = false
         msg =  err
       }
-      const r ={ operation: 'grant',
-               requester: requester,
-               grantee: grantee,
-               resource: resource,
-               readOnly: readOnly,
-               success: success,
-               msg: msg }
+      const r ={
+        operation: 'grant',
+        requester: requester,
+        grantee: grantee,
+        resource: resource,
+        readOnly: readOnly,
+        success: success,
+        msg: msg
+      }
       res.jsonp(r)
-    })
+    }
+  )
 }
 
 // route for revoke
@@ -55,24 +62,27 @@ exports.revoke = function(req, res) {
   }
 
   grant.revokePermission(requester,
-                   grantee,
-                   resource,
-                   readOnly, (err, success, message)=>{
-                     let msg = message
-                     if (err) {
-                       success = false
-                       msg = err
-                     }
-                     const r ={  operation: 'revoke',
-                requester: requester,
-                grantee: grantee,
-                resource: resource,
-                readOnly: readOnly,
-                success: success,
-                msg: msg
-             }
-                     res.jsonp(r)
-                   })
+    grantee,
+    resource,
+    readOnly,
+    (err, success, message)=>{
+      let msg = message
+      if (err) {
+        success = false
+        msg = err
+      }
+      const r ={
+        operation: 'revoke',
+        requester: requester,
+        grantee: grantee,
+        resource: resource,
+        readOnly: readOnly,
+        success: success,
+        msg: msg
+      }
+      res.jsonp(r)
+    }
+  )
 }
 
 // this is middleware:
@@ -142,10 +152,11 @@ exports.allResources = function(req, res) {
   const user = req.user
   const resources = req.userResources
 
-  const r = {success: false,
-             operation: 'get resources for user',
-             requester: user,
-            }
+  const r = {
+    success: false,
+    operation: 'get resources for user',
+    requester: user,
+  }
 
   if(!user) {
     r.error = "Authentication missing"
@@ -170,12 +181,13 @@ exports.resource = function(req, res) {
   const resourceName = req.resourceName
   const user = req.user
 
-  const r = {success: false,
-             operation: 'get resource',
-             requester: user,
-             resource: resourceName,
-             id: resourceName
-            }
+  const r = {
+    success: false,
+    operation: 'get resource',
+    requester: user,
+    resource: resourceName,
+    id: resourceName
+  }
   if(!user) {
     r.error = "Authentication missing"
     return res.status(500).jsonp(r)
@@ -283,8 +295,6 @@ exports.setPermissionsRoutes = function(app) {
   app.param('resourceId', function(req, res, next, id) {
     req.resourceId = id
     next()
-})
-
-
+  })
 }
 

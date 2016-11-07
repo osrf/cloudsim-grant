@@ -3,7 +3,6 @@
 const jstoken = require('./token')
 const model = require('./model')
 const download =  require('./download')
-const sockets = require('./sockets')
 const grant = require('./grant')
 const routes = require('./routes')
 

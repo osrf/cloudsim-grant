@@ -114,9 +114,8 @@ describe('<Unit Test grant database (model.js)>', function() {
 
       // null name, no good
       model.loadData(null, (err, data) => {
-        if (!err) {
-          should.fail('load empty name')
-        }
+        should.exist(err)
+        should.not.exist(data)
       })
 
       // object with random string data
