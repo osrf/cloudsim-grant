@@ -21,6 +21,7 @@ exports.setPermissionsRoutes = routes.setPermissionsRoutes
 exports.grant = routes.grant
 exports.revoke = routes.revoke
 exports.downloadFilePath = download.downloadFilePath
+exports.bitbucketBadgeOpenPrs = routes.bitbucketBadgeOpenPrs
 
 // middleware
 exports.userResources = routes.userResources

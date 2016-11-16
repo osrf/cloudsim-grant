@@ -184,9 +184,10 @@ function setResourceSync(me, resource, data) {
 // create update delete a resource.
 function setResource(me, resource, data, cb) {
   const result = setResourceSync(me, resource, data)
-  cb(result.error, result.result)
+  cb(result.error, result.result, resource)
 }
 
+// create a new resource with an existing name
 function createResource (me, resource, data, cb) {
   if(resources[resource]) {
     cb('"' + resource + '" already exists')
@@ -195,13 +196,29 @@ function createResource (me, resource, data, cb) {
   setResource(me, resource, data, cb)
 }
 
+// create a new resource, using a type to generate a new name
+// @me the username creating the resource
+// @resourceType the resource prefix name (ex "simulator")
+// the resulting resource will have a name that is type with a number
+// (ex "simulator-00X")
+// @data JSON data for the resource
+// @callback function(err, data, resourceName)
+function createResourceWithType(me, resourceType, data, cb) {
+  getNextResourceId(resourceType, (err, resourceName) => {
+    if(err) {
+      cb(err)
+      return
+    }
+    createResource(me, resourceName, data, cb)
+  })
+}
+
 // function deleteResourceSync (me, resource) {
 //   if (resources[resource]) {
 //     return setResourceSync(me, resource, null)
 //   }
 //   return {error: 'resource "' + resource +  '" does not exist', result: null}
 // }
-
 function deleteResource (me, resource, cb) {
   if(resources[resource]) {
     setResource(me, resource, null, cb)
@@ -500,6 +517,8 @@ exports.copyInternalDatabase = copyInternalDatabase
 
 // crud (create update read delete)
 exports.createResource = createResource
+exports.createResourceWithType = createResourceWithType
+exports.getNextResourceId = model.getNextResourceId
 exports.readResource = readResource
 exports.updateResource = updateResource
 exports.deleteResource = deleteResource
@@ -508,7 +527,6 @@ exports.deleteUser = deleteUser
 // util
 exports.isAuthorized = isAuthorized
 exports.readAllResourcesForUser = readAllResourcesForUser
-exports.getNextResourceId = model.getNextResourceId
 exports.grantPermission = grantPermission
 exports.revokePermission = revokePermission
 

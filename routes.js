@@ -1,5 +1,8 @@
 'use strict'
 
+const request = require('request')
+
+// sub modules
 const grant = require('./grant')
 const jstoken = require('./token')
 
@@ -297,4 +300,44 @@ exports.setPermissionsRoutes = function(app) {
     next()
   })
 }
+
+// Middleware that serves an SVG badge that contains the number of
+// open Pull Requests on a bitbucket repository
+// @repository the bitbucket user and repo (ex: "osrf/cloudsim-portal")
+exports.bitbucketBadgeOpenPrs = function (repository) {
+  const url = 'https://bitbucket.org/!api/2.0/repositories/'
+    + repository + '/pullrequests'
+  return function (req, res) {
+    request(url, function (error, response, body) {
+      if (error) {
+        console.error(error)
+        return
+      }
+      if (response.statusCode != 200) {
+        console.error('error getting PRs, code:', response.statusCode)
+        res.status(response.statusCode).end(error)
+        return
+      }
+      const bitbucketData = JSON.parse(body)
+      const pullRequests = bitbucketData.size
+
+      let color = '#4c1'
+      if (pullRequests > 0)
+        color = '#dfb317'
+
+      const s = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="20"><linearGradient id="b" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient><mask id="a"><rect width="128" height="20" rx="3" fill="#fff"/></mask>
+<g mask="url(#a)"><path fill="#555" d="M0 0h81v20H0z"/><path fill="${color}" d="M81 0h47v20H81z"/><path fill="url(#b)" d="M0 0h128v20H0z"/></g><g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+<text x="40.5" y="15" fill="#010101" fill-opacity=".3">pull requests</text>
+<text x="40.5" y="14">pull requests</text>
+<text x="103.5" y="15" fill="#010101" fill-opacity=".3">${pullRequests} open</text>
+<text x="103.5" y="14">${pullRequests} open</text>
+</g></svg>`
+      log('', pullRequests, 'open PRs for', repository)
+      // serve it as an svg document
+      res.setHeader('content-type', 'image/svg+xml;charset=utf-8')
+      res.end(s)
+    })
+  }
+}
+
 
