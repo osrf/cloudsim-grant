@@ -210,7 +210,7 @@ function createResourceWithType(me, resourceType, data, cb) {
       return
     }
     createResource(me, resourceName, data, cb)
-  }
+  })
 }
 
 // function deleteResourceSync (me, resource) {
