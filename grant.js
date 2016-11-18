@@ -204,7 +204,7 @@ function createResource (me, resource, data, cb) {
 // @data JSON data for the resource
 // @callback function(err, data, resourceName)
 function createResourceWithType(me, resourceType, data, cb) {
-  getNextResourceId(resourceType, (err, resourceName) => {
+  model.getNextResourceId(resourceType, (err, resourceName) => {
     if(err) {
       cb(err)
       return
