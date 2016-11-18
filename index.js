@@ -34,6 +34,7 @@ exports.allResources = routes.allResources
 
 // crud (create update read delete)
 exports.createResource = grant.createResource
+exports.createResourceWithType = grant.createResourceWithType
 exports.readResource = grant.readResource
 exports.updateResource = grant.updateResource
 exports.deleteResource = grant.deleteResource
