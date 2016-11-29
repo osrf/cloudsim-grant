@@ -72,20 +72,6 @@ function init(resources, databaseName, databaseUrl, server, cb) {
   })
 }
 
-// old style init... keep it?
-function init_single_user(adminUser, resources, databaseName, databaseUrl, server, cb) {
-  log('cloudsim-grant init')
-  // set the name of the list where data is stored
-  model.init(databaseName)
-  model.setDatabaseUrl(databaseUrl)
-  log('loading redis list "' + databaseName + '" at url: ' + databaseUrl)
-  loadPermissions(adminUser, resources, () =>{
-    log('cloudsim-grant db "' + databaseName  + '" loaded\n')
-    sockets.init(server, events)
-    cb()
-  })
-}
-
 // read emissions from the database
 function loadPermissions(resources, cb) {
   // callback for db operations
