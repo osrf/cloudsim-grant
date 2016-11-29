@@ -54,19 +54,18 @@ exports.dump = function (msg) {
 }
 
 // Initialization
-// @adminUser: the initial username, owner of the first resources
 // @resources: dictionary of resource names and initial data
 // @databaseName: the Redis list that contains the data
 // @databaseUrl: the ip of the Redis db
 // @server: the httpServer used to initialize socket.io
 // @cb: callback
-function init(adminUser, resources, databaseName, databaseUrl, server, cb) {
+function init(resources, databaseName, databaseUrl, server, cb) {
   log('cloudsim-grant init')
   // set the name of the list where data is stored
   model.init(databaseName)
   model.setDatabaseUrl(databaseUrl)
   log('loading redis list "' + databaseName + '" at url: ' + databaseUrl)
-  loadPermissions(adminUser, resources, () =>{
+  loadPermissions(resources, () =>{
     log('cloudsim-grant db "' + databaseName  + '" loaded\n')
     sockets.init(server, events)
     cb()
@@ -74,7 +73,7 @@ function init(adminUser, resources, databaseName, databaseUrl, server, cb) {
 }
 
 // read emissions from the database
-function loadPermissions(adminUser, resources, cb) {
+function loadPermissions(resources, cb) {
   // callback for db operations
   const callback = function(e, r) {
     if (e) {
@@ -96,13 +95,38 @@ function loadPermissions(adminUser, resources, cb) {
     // if the datbase was empty, we need to populate it with the
     // initial resources. Otherwise, they are first in the list
     if (items.length == 0) {
-      // make a list with resources
-      for (var resourceName in resources) {
-        const resourceData = resources[resourceName]
-        // add each of the original resource
-        setResource(adminUser, resourceName, resourceData, callback)
+      // load resources and permissions
+      for (let i in resources) {
+        const resource = resources[i]
+        const resourceName = resource.name
+        const data = resource.data
+        const permissions = resource.permissions
+        // we need to split users into a creator and grantees
+        let creator
+        // find first user that has non readonly pemission and promote him/her to
+        // the creator
+        const first = permissions.filter( e => {
+          return e.permissions.readOnly == false
+        })[0]
+        if (!first) {
+          throw new Error("Resource '" + resourceName + "' has no read/write user!")
+        }
+        else {
+          creator = first.username
+          // create the resource now
+          setResource(creator, resourceName, data, callback)
+        }
+        // the resource has been created... now let's share it with the others
+        for (let j in permissions) {
+          const permission = permissions[j]
+          const grantee = permission.username
+          if (creator === grantee)
+            continue  // skip the creator
+          const readOnly = permission.permissions.readOnly
+          // grant accesss to this resource for our grantee
+          grantPermission(creator, grantee, resourceName, readOnly, callback)
+        }
       }
-
     }
     // put the data back
     for (let i=0; i < items.length; i++) {
