@@ -427,6 +427,11 @@ function isAuthorizedSync(user, resourceName, readOnly) {
   if (!resource) {
     return false
   }
+
+  if (user === adminIdentity){
+    return true
+  }
+
   const permissions  = resource.permissions
   const current = permissions[user]
   if (!current) {
