@@ -20,6 +20,9 @@ class Emitter extends EventEmitter {}
 const events = new Emitter()
 exports.events = events
 
+// this identity (a user or a group) has read/write access to every resource
+let adminIdentity
+
 // This function fires a resource change event to interested parties.
 // resource: the name of the resource
 // operation: 'create', 'update' or 'delete'
@@ -54,18 +57,26 @@ exports.dump = function (msg) {
 }
 
 // Initialization
-// @resources: dictionary of resource names and initial data
+// @adminId: this identity (user or group) that has read/write access to
+// all resources in this database.
+// @resources: dictionary of resource commands to create initial resources and
+// permissions.
 // @databaseName: the Redis list that contains the data
 // @databaseUrl: the ip of the Redis db
 // @server: the httpServer used to initialize socket.io
 // @cb: callback
-function init(resources, databaseName, databaseUrl, server, cb) {
+function init(adminId, resources, databaseName, databaseUrl, server, cb) {
   log('cloudsim-grant init')
+  adminIdentity = adminId
   // set the name of the list where data is stored
   model.init(databaseName)
   model.setDatabaseUrl(databaseUrl)
   log('loading redis list "' + databaseName + '" at url: ' + databaseUrl)
-  loadPermissions(resources, () =>{
+  loadPermissions(resources, (err) =>{
+    if (err) {
+      console.log('error while loading the permissions from the database')
+      throw err
+    }
     log('cloudsim-grant db "' + databaseName  + '" loaded\n')
     sockets.init(server, events)
     cb()

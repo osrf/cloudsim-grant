@@ -3,8 +3,8 @@
 const should = require('should')
 const csgrant = require('../index')
 
-// const log = function() {}
-const log = console.log
+const log = function() {}
+//const log = console.log
 
 describe('<Unit Test misc>', function() {
 

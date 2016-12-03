@@ -6,7 +6,7 @@ const model = require('../model')
 const token = require('../token')
 
 // true: log appears on the console, false: no logging
-const enableLog = false
+const enableLog = true
 const log = enableLog ? console.log: ()=>{}
 
 // we need keys for this test
@@ -20,7 +20,6 @@ let meToken
 let eventsList = []
 
 describe('<Unit Test grant>', function() {
-
   before(function(done) {
     model.clearDb()
     token.signToken({identities: ['me']}, (e, tok)=>{
@@ -66,6 +65,7 @@ describe('<Unit Test grant>', function() {
     })
 
     it('should be possible to add a toaster', (done) => {
+      eventsList = []
       csgrant.createResource('me', 'toaster', {slots:2}, (e)=>{
         if(e)
           should.fail(e)
