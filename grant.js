@@ -293,6 +293,13 @@ function grantPermissionSync(me, user, resource, readOnly) {
         '" does not exist'}
   }
 
+  if (user === adminIdentity)
+  {
+    return {error: null, success: true,
+      message: 'Can\'t change existing read/write permissions for "' +
+        user + '" (it a built-in admin identity)'}
+  }
+
   let current = resources[resource].permissions[user]
   let message
   // If user already has some authorization
@@ -358,6 +365,14 @@ function grantPermission(me, user, resource, readOnly, cb) {
 
 function revokePermissionSync (me, user, resource, readOnly) {
   const innerRevoke = function(me, user, resource, readOnly) {
+    if (user === adminIdentity)
+    {
+      return {error: null, success: true,
+        message: 'Can\'t change existing read/write permissions for "' +
+        user + '" (it a built-in admin identity)'
+      }
+    }
+
     const current = resources[resource].permissions[user]
     // If user has no authorization
     if (!current)
@@ -470,6 +485,10 @@ function copyAndFormatResourceForOutput(user, resourceName) {
     const perms = permissionDict[username]
     if (user != username)
       permissions.push({username: username, permissions: perms})
+  }
+  // also, add the adminIdentiy (if its not already there)
+  if (!permissionDict[adminIdentity]) {
+    permissions.push({username: adminIdentity, permissions: {readOnly: false}})
   }
   const r =  {
     name: name,

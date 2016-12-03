@@ -205,6 +205,9 @@ describe('<Unit Test grant>', function() {
 
       }
       const response = {
+        status: function(s) {
+          s.should.equal(200)
+        },
         jsonp: function (r) {
           if(!r.success) {
             should.fail('cannot grant')
@@ -219,7 +222,6 @@ describe('<Unit Test grant>', function() {
         }
       }
       csgrant.grant(req, response)
-
     })
 
     it('the toaster should still be accessible', (done) => {
@@ -277,13 +279,18 @@ describe('<Unit Test grant>', function() {
         else {
           resource.data.slots.should.equal(4, 'not updated')
           resource.name.should.equal('toaster', 'wrong resource')
-          resource.permissions.length.should.equal(2, 'wrong number of permissions')
+          resource.permissions.length.should.equal(3, 'wrong number of permissions')
 
           resource.permissions[0].username.should.equal('joe')
           resource.permissions[0].permissions.readOnly.should.equal(false)
 
           resource.permissions[1].username.should.equal('me')
           resource.permissions[1].permissions.readOnly.should.equal(false)
+
+          resource.permissions[2].username.should.equal('admins')
+          resource.permissions[2].permissions.readOnly.should.equal(false)
+
+
           done()
         }
       })
@@ -522,7 +529,7 @@ describe('<Unit Test grant>', function() {
           else {
             resource.data.slots.should.equal(4, 'not updated')
             resource.name.should.equal('toaster', 'wrong resource')
-            resource.permissions.length.should.equal(1, 'wrong number of permissions')
+            resource.permissions.length.should.equal(2, 'wrong number of permissions')
             resource.permissions[0].username.should.equal('me')
             resource.permissions[0].permissions.readOnly.should.equal(false)
             done()

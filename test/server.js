@@ -9,7 +9,7 @@ const keys = tok.generateKeys()
 
 const supertest = require('supertest')
 
-const log = console.log
+const log = function(){} // console.log
 
 //keys.private
 // before launching the server, we want to
@@ -81,7 +81,9 @@ function parseResponse(text, log) {
     res = JSON.parse(text)
   }
   catch (e) {
+    console.log('=== not  valid JSON ===')
     console.log(text)
+    console.log('========================')
     throw e
   }
   if(log){
@@ -95,7 +97,6 @@ function parseResponse(text, log) {
 const app = require('../server')
 const agent = supertest.agent(app)
 
-app.csgrant.dump()
 
 // we need the right instance of cloudsim-grant
 const csgrant = app.csgrant
@@ -137,25 +138,145 @@ describe('<Unit test Server>', function() {
     })
   })
 
-  describe('something', function() {
-    it('there should be something', function(done) {
+  describe('See bob\'s resource', function() {
+    it('bob should see 1 resources', function(done) {
+      agent
+      .get('/permissions')
+      .set('Acccept', 'application/json')
+      .set('authorization', bobToken)
+      .send()
+      .end(function(err,res){
+        var response = parseResponse(res.text, res.status != 200)
+        res.status.should.be.equal(200)
+        response.success.should.equal(true)
+        response.requester.should.equal('bob')
+        // admin should see all resources, because he is part
+        // of 'admins' group
+        response.result.length.should.equal(1)
+        done()
+      })
+    })
+  })
+
+  describe('See all resources', function() {
+    it('admin should see 3 resources', function(done) {
       agent
       .get('/permissions')
       .set('Acccept', 'application/json')
       .set('authorization', adminToken)
       .send()
       .end(function(err,res){
-        var response = parseResponse(res.text, res.status != 2000)
+        var response = parseResponse(res.text, res.status != 200)
         res.status.should.be.equal(200)
-        res.redirect.should.equal(false)
         response.success.should.equal(true)
         response.requester.should.equal('admin')
-        // admin should see 2 resources, because he is part
+        // admin should see all resources, because he is part
         // of 'admins' group
         response.result.length.should.equal(3)
+        // let's dig in... verify each result list the adminIdentity
+        // with a read/write permission
+        const filter = function(permission) {
+          return (permission.username == 'admins')
+        }
+        for (let i in response.result) {
+          const permissions = response.result[i].permissions
+          const adminIsHere = permissions.filter(filter)
+          if (!adminIsHere)
+            should.fail('not shared with "admins"')
+        }
         done()
       })
     })
+  })
+
+  describe('Grant with bad params', function() {
+    it('should fail', function(done) {
+       agent
+      .post('/permissions')
+      .set('Acccept', 'application/json')
+      .set('authorization', adminToken)
+      .send({ // we are not sending the data!
+      })
+      .end(function(err,res){
+        var response = parseResponse(res.text, res.status != 400)
+        res.status.should.be.equal(400)
+        response.error.should.equal(
+          "missing required data: grantee, resource or readOnly"
+        )
+        done()
+      })
+    })
+  })
+
+  describe('Grant to admins', function() {
+    it('granting to "admins" should have no effect', function(done) {
+      agent
+      .post('/permissions')
+      .set('Acccept', 'application/json')
+      .set('authorization', adminToken)
+      .send({
+        "grantee": "admins",
+        "resource": "admin_resource",
+        "readOnly": false
+      })
+      .end(function(err,res){
+        var response = parseResponse(res.text, res.status != 200)
+        res.status.should.be.equal(200)
+        response.success.should.equal(true)
+        response.requester.should.equal('admin')
+        done()
+      })
+    })
+  })
+
+  describe('Revoking to admins', function() {
+    it('revoking "admins" should not fail', function(done) {
+      agent
+      .delete('/permissions')
+      .set('Acccept', 'application/json')
+      .set('authorization', adminToken)
+      .send({
+        "grantee": "admins",
+        "resource": "admin_resource",
+        "readOnly": false
+      })
+      .end(function(err,res){
+        var response = parseResponse(res.text, res.status != 200)
+        res.status.should.be.equal(200)
+        response.success.should.equal(true)
+        response.requester.should.equal('admin')
+        done()
+      })
+    })
+    it('should have no effect', function(done) {
+      agent
+      .get('/permissions')
+      .set('Acccept', 'application/json')
+      .set('authorization', adminToken)
+      .send()
+      .end(function(err,res){
+        var response = parseResponse(res.text, res.status != 200)
+        res.status.should.be.equal(200)
+        response.success.should.equal(true)
+        response.requester.should.equal('admin')
+        // admin should still see all 3 resources, because he is part
+        // of 'admins' group
+        response.result.length.should.equal(3)
+        // let's dig in... verify each result list the adminIdentity
+        // with a read/write permission
+        const filter = function(permission) {
+          return (permission.username == 'admins')
+        }
+        for (let i in response.result) {
+          const permissions = response.result[i].permissions
+          const adminIsHere = permissions.filter(filter)
+          if (!adminIsHere)
+            should.fail('not shared with "admins"')
+        }
+        done()
+      })
+    })
+
   })
 
   after(function(done) {

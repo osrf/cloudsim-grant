@@ -25,7 +25,23 @@ exports.grant = function(req, res) {
   const data = req.method === "GET"?req.query:req.body
   const grantee  = data.grantee
   const resource = data.resource
+
+  if (!requester) {
+    res.status(400).jsonp({success:false, error: 'user is not authenticated' })
+    return
+  }
+
+  if (typeof(data.readOnly) == 'undefined' ||
+      typeof(grantee) == 'undefined' ||
+      typeof(resource) == 'undefined' ){
+    res.status(400).jsonp({
+      "operation": "grant",
+      "success":false,
+      "error":"missing required data: grantee, resource or readOnly"
+    })
+  }
   const readOnly = JSON.parse(data.readOnly)
+
   grant.grantPermission(
     requester,
     grantee,
@@ -57,13 +73,21 @@ exports.revoke = function(req, res) {
   const requester = req.user
   const grantee  = data.grantee
   const resource = data.resource
-  const readOnly = JSON.parse(data.readOnly)
 
   if (!requester) {
-    res.jsonp({success:false, msg: 'user is not authenticated' })
+    res.status(400).jsonp({success:false, error: 'user is not authenticated' })
     return
   }
-
+  if (typeof(data.readOnly) == 'undefined' ||
+      typeof(grantee) == 'undefined' ||
+      typeof(resource) == 'undefined' ){
+    res.status(400).jsonp({
+      "operation": "grant",
+      "success":false,
+      "error":"missing required data: grantee, resource or readOnly"
+    })
+  }
+  const readOnly = JSON.parse(data.readOnly)
   grant.revokePermission(requester,
     grantee,
     resource,
