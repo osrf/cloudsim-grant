@@ -4,7 +4,7 @@ console.log('test/server.js')
 const fs = require('fs')
 const path = require('path')
 
-const tok = require('cloudsim-grant/token')
+const tok = require('../token')
 const keys = tok.generateKeys()
 
 const supertest = require('supertest')
