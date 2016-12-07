@@ -67,6 +67,53 @@ const options = {
   ]
 }
 
+/*
+const CREATE_RESOURCE_NAME
+prefix
+
+fullname
+param: ''
+
+const ADD_RESOURCE = 'ADD_RESOURCE'
+{
+  creator :
+  name : ':resource'
+  data :
+}
+
+const REMOVE_RESOURCE
+{
+  resource: ''
+}
+
+const UPDATE_RESOURCE
+{
+  // query value (if !query then all data)
+  // no remove
+}
+
+const GRANT_RESOURCE = 'GRANT_RESOURCE'
+{
+  type: GRANT_RESOURCE
+  granter: 'me'
+  grantee: 'you'
+  resource: ':resource'
+  readOnly
+  allowDowngrade
+}
+
+const REVOKE_RESOURCE
+granter
+grantee
+resource
+readOnly
+
+
+[ {type: 'CREATE_RESOURCE', prefix: 'toto', id: ':number'}]
+*/
+
+
+
 fs.writeFileSync(envPath, env)
 fs.writeFileSync(optionsPath, JSON.stringify(options, null, 2))
 console.log('wrote files: .env to ', envPath, ' and options to ', optionsPath)
