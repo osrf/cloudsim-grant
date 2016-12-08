@@ -67,51 +67,76 @@ const options = {
   ]
 }
 
+
+
+var actions = [
+  {
+    server: 'https://devportal.cloudsim.io', // not used
+    type: 'CREATE_RESOURCE',
+    param: 'totoId',
+    prefix: 'toto', creator: 'bob', data: {content: 'a string' }
+  },
+
+  // suffix of the resource is now set in param: 'totoId'
+  {
+    server: 'https://devportal.cloudsim.io',
+    type: 'ADD_RESOURCE',
+    prefix: 'toto-team-blue',
+    suffix: ':totoId',
+    data: {"key": "something" }} // data must be a valid JSON
+  },
+  // there should be 2 resources with same nb
+  {
+    server: 'https://devportal.cloudsim.io',
+    type: 'GRANT_RESOURCE',
+    granter: ''
+    grantee: ''
+    resource: ''
+    permissions: {
+      readOnly: true
+      allowDowngrade: true,   // optional
+    }
+  },
+  {
+    server: 'https://devportal.cloudsim.io',
+    type: 'REVOKE_RESOURCE',
+    granter:
+    grantee:
+    resource:
+    permissions: {
+      readOnly: false
+    }
+  },
+  {
+    server: 'https://devportal.cloudsim.io',
+    type: 'UPDATE_RESOURCE',
+    path: 'something.something', // optional, relative to data
+    value: {'chair': 'is against the wall'}
+  }
+]
+
+
+// path.toString().split('.')
+
 /*
-const CREATE_RESOURCE_NAME
-prefix
+ADD_RESOURCE undo:
+  nothing
+REMOVE_RESOURCE undo:
+  need to save previous state and id
+  create resource when it does not exist (idem)
+UPDATE_RESOURCE undo:
+  need to save the previous state (all or path)
+  use an update operation (idem? change from old x value to y value is OK)
+GRANT_RESOURCE:
+  save previous grantee access
+  revoke or downgrade (idem? grant/revoke is idem)
+REVOKE_RESOURCE:
+  see GRANT
 
-fullname
-param: ''
+results? not too sure.
 
-const ADD_RESOURCE = 'ADD_RESOURCE'
-{
-  creator :
-  name : ':resource'
-  data :
-}
-
-const REMOVE_RESOURCE
-{
-  resource: ''
-}
-
-const UPDATE_RESOURCE
-{
-  // query value (if !query then all data)
-  // no remove
-}
-
-const GRANT_RESOURCE = 'GRANT_RESOURCE'
-{
-  type: GRANT_RESOURCE
-  granter: 'me'
-  grantee: 'you'
-  resource: ':resource'
-  readOnly
-  allowDowngrade
-}
-
-const REVOKE_RESOURCE
-granter
-grantee
-resource
-readOnly
-
-
-[ {type: 'CREATE_RESOURCE', prefix: 'toto', id: ':number'}]
+dispatch
 */
-
 
 
 fs.writeFileSync(envPath, env)
