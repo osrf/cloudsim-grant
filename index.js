@@ -57,3 +57,9 @@ exports.token = jstoken
 exports.model = model
 exports.routes = routes
 exports.sockets = sockets
+
+
+exports.setId = model.setId
+exports.getId = model.getId
+
+

@@ -24,36 +24,77 @@ app.use(morgan('combined'))
 
 const httpServer = http.Server(app)
 
+
 const adminIdentity = process.env.CLOUDSIM_ADMIN || 'admin-test'
-const db = 'grant-test'
+const dbName = 'cloudsim-grant' + (app.get('env') === 'test'? '-test': '')
+const dbUrl = '127.0.0.1'
 const port = process.env.PORT || 4444
 
+
+function details() {
+  const date = new Date()
+  const pack = require('./package.json')
+  const csgrantVersion = require('./package.json').version
+  const env = app.get('env')
+
+  const s = `
+date: ${date}
+
+${pack.name} version: ${pack.version}
+${pack.description}
+port: ${port}
+cloudsim-grant version: ${csgrantVersion}
+admin id: ${adminIdentity}
+environment: ${env}
+redis database name: ${dbName}
+redis database url: ${dbUrl}
+`
+  return s
+
+}
+
 app.get('/', function (req, res) {
-  const v = require('./package.json').version
+  const info = details()
   const s = `
     <h1>Cloudsim grant test server</h1>
     <pre>
-    cloudsim-grant v${v}
+    ${info}
     </pre>
   `
   res.end(s)
 })
 
+// write details to the console
+console.log('============================================')
+console.log(details())
+console.log('============================================')
+
+app.get('/', function (req, res) {
+  const info = details()
+  const s = `
+    <h1>Cloudsim-sim server</h1>
+    <div>Gazebo controller is running</div>
+    <pre>
+    ${info}
+    </pre>
+  `
+  res.end(s)
+})
+
+csgrant.setId('toto')
+
 csgrant.setPermissionsRoutes(app)
 
 let resources = [
   {
-    "name": "toasters",
-    "data": {},
-    "permissions": [
-      {
-        "username": "bob",
-        "permissions": {
-          "readOnly": false
-        }
-      }
-    ]
-  }
+    "server": "https://test.cloudsim.io",
+    "type": "CREATE_RESOURCE",
+    "name": "toto_resource",
+    "creator": "bob",
+    "data": {
+      "txt": "toto_resource data"
+    }
+  },
 ]
 
 // share the server (for tests)
@@ -63,8 +104,10 @@ exports = module.exports = app
 console.log('loading options.json...')
 try {
   const options = require('./options.json')
-  if (options.resources) {
-    console.log('replacing default options with:' + options.resources)
+  if (options) {
+    console.log('replacing default options with:' +
+      JSON.stringify(options, null, 2)
+    )
     resources = options.resources
   }
 }
@@ -76,8 +119,8 @@ catch(e) {
 csgrant.init(
   adminIdentity,
   resources,
-  db,
-  'localhost',
+  dbName,
+  dbUrl,
   httpServer,
   (err)=> {
     if(err) {
@@ -85,8 +128,8 @@ csgrant.init(
       process.exit(-2)
     }
     else {
+      csgrant.dump()
       console.log('resources loaded')
-
       // start the server
       httpServer.listen(port, function(){
         console.log('listening on *:' + port);

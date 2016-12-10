@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "coveralls": "./node_modules/.bin/eslint . && export NODE_ENV=test; istanbul cover _mocha -- -u exports -R spec && istanbul-coveralls",
-    "test": "./node_modules/.bin/eslint . && export NODE_ENV=test; istanbul cover --print both _mocha -- -u exports -R spec"
+    "test": "export NODE_ENV=test && ./node_modules/.bin/eslint . ; istanbul cover --print both _mocha -- -u exports -R spec"
   },
   "repository": {
     "type": "mercurial",

@@ -51,7 +51,7 @@ exports.dump = function (msg) {
   console.log('\n\nCLOUSDSIM GRANT DUMP\n',
     title,
     '\n',
-    '  DB:', model.listName,
+    '  DB:', model.getDb(),
     '\n',s,
     '\n-----\n')
 }
@@ -69,8 +69,7 @@ function init(adminId, resources, databaseName, databaseUrl, server, cb) {
   log('cloudsim-grant init')
   adminIdentity = adminId
   // set the name of the list where data is stored
-  model.init(databaseName)
-  model.setDatabaseUrl(databaseUrl)
+  model.init(databaseUrl, databaseName)
   log('loading redis list "' + databaseName + '" at url: ' + databaseUrl)
   loadPermissions(resources, (err) =>{
     if (err) {
@@ -78,9 +77,76 @@ function init(adminId, resources, databaseName, databaseUrl, server, cb) {
       throw err
     }
     log('cloudsim-grant db "' + databaseName  + '" loaded\n')
-    sockets.init(server, events)
+    if (server) {
+      sockets.init(server, events)
+    }
     cb()
   })
+}
+
+function dispatch(actions, callback) {
+  const params = {}
+  for (let i in actions) {
+    const action = actions[i]
+    const type = action.type
+    console.log('\n\nDISPATCH:', action)
+    switch (type) {
+    case 'CREATE_RESOURCE': {
+      let name  // we'll put the resource name here
+      if (action.resource) {
+        name = action.resource
+        createResource(action.creator, action.resource, action.data, callback)
+      }
+      else {
+        createResourceWithType(action.creator, action.prefix, action.data,
+        function(err, data, resourceName){
+          if (!err) {
+            // if we were able to create the resource,
+            if (action.param) {
+              params[action.param] = resourceName
+              name = resourceName
+              console.log(' >> params', params)
+            }
+          }
+          callback(err, data)
+        })
+      }
+      log('new resource:', action.creator, name, action.data)
+      break
+    }
+    case 'DELETE_RESOURCE': {
+
+      if(action)throw new Error("todo.. delete resource " + action.resource)
+      break
+    }
+    case 'UPDATE_RESOURCE': {
+console.log('XXXXX XXXXX')
+      if(action)throw "todo update"
+      break
+    }
+    case 'GRANT_RESOURCE': {
+      if(action.permissions.allowDowngrade){
+console.log('DSSS XXXXX')
+        if(action)throw ("todo: downgrade")
+      }
+      grantPermission(action.granter,
+                      action.grantee,
+                      action.resource,
+                      action.permissions.readOnly,
+                      callback)
+      break
+    }
+    case 'REVOKE_RESOURCE': {
+      throw "todo"
+      break
+    }
+    default: {
+      throw ('unknown type: "' + type +
+        '" for action resource: "' +
+        JSON.stringify(action) + '"')
+    }
+    }
+  }
 }
 
 // read emissions from the database
@@ -102,12 +168,18 @@ function loadPermissions(resources, cb) {
     }
     log('data loaded, clearing db')
     // remove the data in the db
-    model.clearDb()
+    model.clearDb(true)
     // if the datbase was empty, we need to populate it with the
     // initial resources. Otherwise, they are first in the list
     if (items.length == 0) {
+      console.log('Empty database, loading defaults')
+      dispatch(resources, callback)
+/*
       // load resources and permissions
       for (let i in resources) {
+        const resourceAction = resources[i]
+        dispatch(resourceAction, callback)
+
         const resource = resources[i]
         const resourceName = resource.name
         const data = resource.data
@@ -138,6 +210,7 @@ function loadPermissions(resources, cb) {
           grantPermission(creator, grantee, resourceName, readOnly, callback)
         }
       }
+*/
     }
     // put the data back
     for (let i=0; i < items.length; i++) {

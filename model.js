@@ -15,17 +15,28 @@ function log(s) {
   }
 }
 
+let listName = 'cloudsim-xxxxxg'
+
+/*
 // the database list where data is saved
 let listName = 'cloudsim-grant'
+if (process.env.NODE_ENV === "test") {
+  console.log('cloudsim-grant/model.js NODE_ENV: ' + process.env.NODE_ENV)
+  // test mode...
+  // use the test list instead of the live one
+  listName = 'cloudsim-grant_test'
+}
+*/
+
+let id
+exports.setId = function(i) {id = i}
+exports.getDb = function() {return listName}
 
 // set the list name
-function init(databaseName) {
-  listName = databaseName
-}
-
-// connect to database using a URL
-function setDatabaseUrl(url) {
-  if (!url)
+function init(url, databaseName) {
+console.log('XXXX XIXXX INIT', databaseName)
+ listName = databaseName
+ if (!url)
     throw "no url specified for database"
 
   if (client)
@@ -44,13 +55,6 @@ client.on("error", function (err) {
 client.on("connect", function () {
   log("Redis connected");
 })
-
-if (process.env.NODE_ENV === "test") {
-  console.log('cloudsim-grant/model.js NODE_ENV: ' + process.env.NODE_ENV)
-  // test mode...
-  // use the test list instead of the live one
-  listName = 'cloudsim-grant_test'
-}
 
 // internal function to add an item to the list
 function push(operation, data) {
@@ -121,9 +125,10 @@ function readDb(cb) {
 }
 
 // erases the list of all db operations
-function clearDb() {
+function clearDb(silent) {
   client.del(listName)
-  console.log('"' + listName + '" database deleted')
+  if(!silent)
+    console.log('"' + listName + '" database deleted')
 }
 
 // function to get 0 in front of a number ( 9 -> 0009)
@@ -189,8 +194,6 @@ function loadData(name, cb) {
 
 // Resources and permissions
 exports.init = init
-exports.setDatabaseUrl = setDatabaseUrl
-exports.listName = listName
 exports.grant = grant
 exports.revoke = revoke
 exports.setResource = setResource

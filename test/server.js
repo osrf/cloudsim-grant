@@ -3,9 +3,12 @@
 console.log('test/server.js')
 const fs = require('fs')
 const path = require('path')
+const should = require('should')
+
 
 const tok = require('../token')
 const keys = tok.generateKeys()
+tok.initKeys(keys.public, keys.private, null)
 
 const supertest = require('supertest')
 
@@ -18,7 +21,7 @@ const envPath = path.normalize(__dirname + '/../.env')
 const optionsPath = path.normalize(__dirname + '/../options.json')
 
 // this is our custom .env file content
-let env = `
+let envTxt = `
 PORT=4444
 
 CLOUDSIM_ADMIN="admins"
@@ -27,54 +30,116 @@ CLOUDSIM_AUTH_PUB_KEY=${keys.public}
 `
 
 // this is our options.json file
-// it has 3 resources, with only one that is shared with
+// it has 4 resources, with only one that is shared with
 // user "admin" ("admin" is part of the "admins" see all group )
 const options = {
-  "resources":
-  [
+  "resources":[
     {
-      "name": "toto_resource",
-      "data": {},
-      "permissions": [
-        {
-          "username": "toto",
-          "permissions": {
-            "readOnly": false
-          }
-        }
-      ]
+      "server": "https://test.cloudsim.io",
+      "type": "CREATE_RESOURCE",
+      "resource": "bob_resource",
+      "creator": "bob",
+      "data": {
+        "txt": "bob_resource data"
+      }
     },
     {
-      "name": "admin_resource",
+      "server": "https://test.cloudsim.io",
+      "type": "CREATE_RESOURCE",
+      "prefix": "toto_resource",
+      "param": "totoId",
+      "creator": "toto",
       "data": {
-        "key": "value"
-      },
-      "permissions": [
-        {
-          "username": "bob",
-          "permissions": {
-            "readOnly": true
-          }
-        },
-        {
-          "username": "admin",
-          "permissions": {
-            "readOnly": false
-          }
-        }
-      ]
+        "txt": "toto_resource-xxx data"
+      }
+    },
+    {
+      "server": "https://test.cloudsim.io",
+      "type": "CREATE_RESOURCE",
+      "prefix": "totosub",
+      "suffix": ":totoId",
+      "creator": "toto",
+      "data": {
+        "txt": "totosub_resource-xxx data"
+      }
+    },
+    {
+      "server": "https://test.cloudsim.io",
+      "type": "CREATE_RESOURCE",
+      "resource": "admin_resource",
+      "creator": "admin",
+      "data": {
+        "txt": "admin_resource data"
+      }
+    },
+    {
+      "server": "https://devportal.cloudsim.io",
+      "type": "GRANT_RESOURCE",
+      "granter": "admin",
+      "grantee": "bob",
+      "resource": "admin_resource",
+      "permissions": {
+        "readOnly": true,
+      }
     }
   ]
 }
 
+/*
+this one has the alllow downgrade
+    {
+      "server": "https://devportal.cloudsim.io",
+      "type": "GRANT_RESOURCE",
+      "granter": "admin",
+      "grantee": "bob",
+      "resource": "admin_resource",
+      "permissions": {
+        "readOnly": true,
+        "allowDowngrade": true
+      }
+    }
+
+
+
+"actions": [
+  {
+    server: 'https://test.cloudsim.io', // not used
+    type: 'CREATE_RESOURCE',
+    fullname: 'toto_resource',
+    creator: 'bob',
+    data: {txt: 'toto_resource data' }
+  },
+  // prefix must be null, param must be null
+  // ...
+  // result
+  // check data, bob write
+  {
+    server: 'https://test.cloudsim.io', // not used
+    type: 'CREATE_RESOURCE',
+    fullname: 'admin_resource',
+    creator: 'admin',
+    data: {txt: 'admin_resource data' }
+  },
+  {
+    server: 'https://devportal.cloudsim.io',
+    type: 'GRANT_RESOURCE',
+    granter: 'admin'
+    grantee: 'bob'
+    resource: 'admin_resource'
+    permissions: {
+      readOnly: true,
+      allowDowngrade: true,   // dafault is false
+    }
+  }
+]
 
 
 var actions = [
   {
     server: 'https://devportal.cloudsim.io', // not used
     type: 'CREATE_RESOURCE',
-    param: 'totoId',
-    prefix: 'toto', creator: 'bob', data: {content: 'a string' }
+    param: 'tomatoId',
+    prefix: 'tomato', creator: 'bob', data: {content: 'a string' }
   },
 
   // suffix of the resource is now set in param: 'totoId'
@@ -113,15 +178,17 @@ var actions = [
     path: 'something.something', // optional, relative to data
     value: {'chair': 'is against the wall'}
   }
+
+DELETE_RESOURCE
 ]
 
 
 // path.toString().split('.')
 
-/*
-ADD_RESOURCE undo:
+
+CREATE_RESOURCE undo:
   nothing
-REMOVE_RESOURCE undo:
+DELETE_RESOURCE undo:
   need to save previous state and id
   create resource when it does not exist (idem)
 UPDATE_RESOURCE undo:
@@ -138,14 +205,22 @@ results? not too sure.
 dispatch
 */
 
-
-fs.writeFileSync(envPath, env)
+fs.writeFileSync(envPath, envTxt)
 fs.writeFileSync(optionsPath, JSON.stringify(options, null, 2))
 console.log('wrote files: .env to ', envPath, ' and options to ', optionsPath)
+console.log('supertest setup')
 
+const app = require('../server')
+const agent = supertest.agent(app)
+
+// we need the right instance of cloudsim-grant
+const csgrant = app.csgrant
+console.log('DUMP before start')
+csgrant.dump()
 
 function parseResponse(text, log) {
   if(log) {
+    console.log('XXXXXX server test response XXXXXXXXX')
     csgrant.dump()
   }
   let res
@@ -165,14 +240,6 @@ function parseResponse(text, log) {
   return res
 }
 
-
-const app = require('../server')
-const agent = supertest.agent(app)
-
-
-// we need the right instance of cloudsim-grant
-const csgrant = app.csgrant
-
 // setup identities
 const adminTokenData = {
   identities: ['admin', 'admins']
@@ -186,6 +253,7 @@ let adminToken
 let bobToken
 
 describe('<Unit test Server>', function() {
+
   before(function(done) {
     tok.signToken(adminTokenData, (e, tok)=>{
       log('token signed for "admin"')
@@ -193,7 +261,7 @@ describe('<Unit test Server>', function() {
         should.fail('sign error: ' + e)
       }
       adminToken = tok
-      console.log('admin token:', tok)
+      log('admin token:', tok)
       done()
     })
   })
@@ -205,46 +273,46 @@ describe('<Unit test Server>', function() {
         should.fail('sign error: ' + e)
       }
       bobToken = tok
-      console.log('admin token:', tok)
+      log('bob token:', tok)
       done()
     })
   })
 
   describe('See bob\'s resource', function() {
-    it('bob should see 1 resources', function(done) {
+    it('bob should see 2 resources', function(done) {
       agent
       .get('/permissions')
       .set('Acccept', 'application/json')
       .set('authorization', bobToken)
       .send()
       .end(function(err,res){
-        var response = parseResponse(res.text, res.status != 200)
+        const response = parseResponse(res.text, res.status != 200)
         res.status.should.be.equal(200)
         response.success.should.equal(true)
         response.requester.should.equal('bob')
         // admin should see all resources, because he is part
         // of 'admins' group
-        response.result.length.should.equal(1)
+        response.result.length.should.equal(2)
         done()
       })
     })
   })
 
   describe('See all resources', function() {
-    it('admin should see 3 resources', function(done) {
+    it('admin should see all resources', function(done) {
       agent
       .get('/permissions')
       .set('Acccept', 'application/json')
       .set('authorization', adminToken)
       .send()
       .end(function(err,res){
-        var response = parseResponse(res.text, res.status != 200)
+        const response = parseResponse(res.text, res.status != 200)
         res.status.should.be.equal(200)
         response.success.should.equal(true)
         response.requester.should.equal('admin')
         // admin should see all resources, because he is part
         // of 'admins' group
-        response.result.length.should.equal(3)
+        response.result.length.should.equal(4)
         // let's dig in... verify each result list the adminIdentity
         // with a read/write permission
         const filter = function(permission) {
@@ -263,14 +331,14 @@ describe('<Unit test Server>', function() {
 
   describe('Grant with bad params', function() {
     it('should fail', function(done) {
-       agent
+      agent
       .post('/permissions')
       .set('Acccept', 'application/json')
       .set('authorization', adminToken)
       .send({ // we are not sending the data!
       })
       .end(function(err,res){
-        var response = parseResponse(res.text, res.status != 400)
+        const response = parseResponse(res.text, res.status != 400)
         res.status.should.be.equal(400)
         response.error.should.equal(
           "missing required data: grantee, resource or readOnly"
@@ -292,7 +360,7 @@ describe('<Unit test Server>', function() {
         "readOnly": false
       })
       .end(function(err,res){
-        var response = parseResponse(res.text, res.status != 200)
+        const response = parseResponse(res.text, res.status != 200)
         res.status.should.be.equal(200)
         response.success.should.equal(true)
         response.requester.should.equal('admin')
@@ -301,19 +369,20 @@ describe('<Unit test Server>', function() {
     })
   })
 
-  describe('Revoking to admins', function() {
+  describe('Revoking admins', function() {
     it('revoking "admins" should not fail', function(done) {
       agent
       .delete('/permissions')
       .set('Acccept', 'application/json')
       .set('authorization', adminToken)
       .send({
+        "granter": "admin",
         "grantee": "admins",
         "resource": "admin_resource",
         "readOnly": false
       })
       .end(function(err,res){
-        var response = parseResponse(res.text, res.status != 200)
+        const response = parseResponse(res.text, res.status != 200)
         res.status.should.be.equal(200)
         response.success.should.equal(true)
         response.requester.should.equal('admin')
@@ -327,13 +396,13 @@ describe('<Unit test Server>', function() {
       .set('authorization', adminToken)
       .send()
       .end(function(err,res){
-        var response = parseResponse(res.text, res.status != 200)
+        const response = parseResponse(res.text, res.status != 200)
         res.status.should.be.equal(200)
         response.success.should.equal(true)
         response.requester.should.equal('admin')
         // admin should still see all 3 resources, because he is part
         // of 'admins' group
-        response.result.length.should.equal(3)
+        response.result.length.should.equal(4)
         // let's dig in... verify each result list the adminIdentity
         // with a read/write permission
         const filter = function(permission) {
@@ -348,7 +417,34 @@ describe('<Unit test Server>', function() {
         done()
       })
     })
+  })
 
+  describe('Revoking a resource', function() {
+    it('revoking "bob" should not fail', function(done) {
+      agent
+      .put('/permissions')
+      .set('Acccept', 'application/json')
+      .set('authorization', adminToken)
+      .send([
+        {
+          server: 'https://devportal.cloudsim.io',
+          type: 'REVOKE_RESOURCE',
+          granter: 'admin',
+          grantee: 'bob',
+          resource: 'admin_resource',
+          permissions: {
+            readOnly: true,
+          }
+        }
+      ])
+      .end(function(err,res){
+        const response = parseResponse(res.text, res.status != 200)
+        res.status.should.be.equal(200)
+//        response.success.should.equal(true)
+//        response.requester.should.equal('admin')
+        done()
+      })
+    })
   })
 
   after(function(done) {
