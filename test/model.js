@@ -92,7 +92,7 @@ describe('<Unit Test grant database (model.js)>', function() {
 
   describe('connecting to database using url:', function(){
     it('should be able to connect to a db url', (done) => {
-      model.setDatabaseUrl('127.0.0.1');
+      model.init('127.0.0.1', 'cloudsim-grant-test');
       model.readDb((err, items)=>{
         if(err)
           should.fail(err)
