@@ -31,7 +31,7 @@ CLOUDSIM_AUTH_PUB_KEY=${keys.public}
 
 // this is our options.json file
 // it has 4 resources, with only one that is shared with
-// user "admin" ("admin" is part of the "admins" see all group )
+// user "admin" is part of the "admins" see all group.
 const options = {
   "resources":[
     {
@@ -207,8 +207,7 @@ dispatch
 
 fs.writeFileSync(envPath, envTxt)
 fs.writeFileSync(optionsPath, JSON.stringify(options, null, 2))
-console.log('wrote files: .env to ', envPath, ' and options to ', optionsPath)
-console.log('supertest setup')
+log('wrote files: .env to ', envPath, ' and options to ', optionsPath)
 
 const app = require('../server')
 const agent = supertest.agent(app)
@@ -220,7 +219,6 @@ csgrant.dump()
 
 function parseResponse(text, log) {
   if(log) {
-    console.log('XXXXXX server test response XXXXXXXXX')
     csgrant.dump()
   }
   let res
@@ -253,7 +251,6 @@ let adminToken
 let bobToken
 
 describe('<Unit test Server>', function() {
-
   before(function(done) {
     tok.signToken(adminTokenData, (e, tok)=>{
       log('token signed for "admin"')
@@ -261,7 +258,7 @@ describe('<Unit test Server>', function() {
         should.fail('sign error: ' + e)
       }
       adminToken = tok
-      log('admin token:', tok)
+      console.log('admin token:', tok)
       done()
     })
   })
