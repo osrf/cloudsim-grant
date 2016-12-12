@@ -64,7 +64,6 @@ console.log('loading options.json...')
 try {
   const options = require('./options.json')
   if (options.resources) {
-    console.log('replacing default options with:' + options.resources)
     resources = options.resources
   }
 }
