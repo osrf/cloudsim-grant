@@ -191,7 +191,7 @@ describe('<Unit test Server>', function() {
 
   describe('Grant with bad params', function() {
     it('should fail', function(done) {
-       agent
+      agent
       .post('/permissions')
       .set('Acccept', 'application/json')
       .set('authorization', adminToken)
