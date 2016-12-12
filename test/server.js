@@ -27,8 +27,8 @@ CLOUDSIM_AUTH_PUB_KEY=${keys.public}
 `
 
 // this is our options.json file
-// it has 3 resources, with only one that is shared with
-// user "admin" ("admin" is part of the "admins" see all group )
+// it has 2 resources, admin_resource is shared with user "bob"
+// user "admin" is part of the "admins"
 const options = {
   "resources":
   [
@@ -121,7 +121,7 @@ describe('<Unit test Server>', function() {
         should.fail('sign error: ' + e)
       }
       adminToken = tok
-      console.log('admin token:', tok)
+      log('admin token:', tok)
       done()
     })
   })
@@ -133,7 +133,7 @@ describe('<Unit test Server>', function() {
         should.fail('sign error: ' + e)
       }
       bobToken = tok
-      console.log('admin token:', tok)
+      log('bob token:', tok)
       done()
     })
   })
@@ -150,8 +150,6 @@ describe('<Unit test Server>', function() {
         res.status.should.be.equal(200)
         response.success.should.equal(true)
         response.requester.should.equal('bob')
-        // admin should see all resources, because he is part
-        // of 'admins' group
         response.result.length.should.equal(1)
         done()
       })
