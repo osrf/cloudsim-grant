@@ -24,7 +24,6 @@ app.use(morgan('combined'))
 
 const httpServer = http.Server(app)
 
-
 const adminIdentity = process.env.CLOUDSIM_ADMIN || 'admin-test'
 const dbName = 'cloudsim-grant' + (app.get('env') === 'test'? '-test': '')
 const dbUrl = '127.0.0.1'
@@ -130,6 +129,7 @@ csgrant.init(
     else {
       csgrant.dump()
       console.log('resources loaded')
+
       // start the server
       httpServer.listen(port, function(){
         console.log('listening on *:' + port);
