@@ -49,7 +49,7 @@ if (process.env.NODE_ENV === "test") {
   console.log('cloudsim-grant/model.js NODE_ENV: ' + process.env.NODE_ENV)
   // test mode...
   // use the test list instead of the live one
-  listName = 'cloudsim-grant_test'
+  listName = 'cloudsim-grant-test'
 }
 
 // internal function to add an item to the list

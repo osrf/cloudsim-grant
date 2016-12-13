@@ -1,75 +1,17 @@
 'use strict'
 
 console.log('test/server.js')
+
 const fs = require('fs')
 const path = require('path')
-
-const tok = require('../token')
-const keys = tok.generateKeys()
-
 const supertest = require('supertest')
+const should = require('should')
+const tok = require('../token')
 
 const log = function(){} // console.log
 
-//keys.private
 // before launching the server, we want to
 // generate a cutom configuration
-const envPath = path.normalize(__dirname + '/../.env')
-const optionsPath = path.normalize(__dirname + '/../options.json')
-
-// this is our custom .env file content
-let env = `
-PORT=4444
-
-CLOUDSIM_ADMIN="admins"
-CLOUDSIM_AUTH_PUB_KEY=${keys.public}
-
-`
-
-// this is our options.json file
-// it has 2 resources, admin_resource is shared with user "bob"
-// user "admin" is part of the "admins"
-const options = {
-  "resources":
-  [
-    {
-      "name": "toto_resource",
-      "data": {},
-      "permissions": [
-        {
-          "username": "toto",
-          "permissions": {
-            "readOnly": false
-          }
-        }
-      ]
-    },
-    {
-      "name": "admin_resource",
-      "data": {
-        "key": "value"
-      },
-      "permissions": [
-        {
-          "username": "bob",
-          "permissions": {
-            "readOnly": true
-          }
-        },
-        {
-          "username": "admin",
-          "permissions": {
-            "readOnly": false
-          }
-        }
-      ]
-    }
-  ]
-}
-
-fs.writeFileSync(envPath, env)
-fs.writeFileSync(optionsPath, JSON.stringify(options, null, 2))
-console.log('wrote files: .env to ', envPath, ' and options to ', optionsPath)
 
 
 function parseResponse(text, log) {
@@ -93,13 +35,12 @@ function parseResponse(text, log) {
   return res
 }
 
-
 const app = require('../server')
 const agent = supertest.agent(app)
 
-
 // we need the right instance of cloudsim-grant
 const csgrant = app.csgrant
+csgrant.dump()
 
 // setup identities
 const adminTokenData = {
@@ -112,6 +53,7 @@ const bobTokenData = {
 
 let adminToken
 let bobToken
+
 
 describe('<Unit test Server>', function() {
   before(function(done) {
@@ -138,7 +80,76 @@ describe('<Unit test Server>', function() {
     })
   })
 
-  describe('See bob\'s resource', function() {
+  describe('Configuration'), function() {
+    it('should have a .env file', function(done) {
+      const keys = tok.generateKeys()
+      tok.initKeys(keys.public, keys.private)
+      const envPath = path.normalize(__dirname + '/../.env')
+      // this is our custom .env file content
+      let env = `
+PORT=4444
+
+CLOUDSIM_ADMIN="admins"
+CLOUDSIM_AUTH_PUB_KEY=${keys.public}
+    `
+      fs.writeFileSync(envPath, env)
+      // check that it exists
+      fs.stat(envPath, function (err) {
+        if (err) should.fail(err)
+        done()
+      })
+    })
+    it('should have an options.json file', function(done) {
+      const optionsPath = path.normalize(__dirname + '/../options.json')
+      // this is our options.json file
+      // it has 2 resources, admin_resource is shared with user "bob"
+      // user "admin" is part of the "admins"
+      const options = {
+        "resources":
+        [
+          {
+            "name": "toto_resource",
+            "data": {},
+            "permissions": [
+              {
+                "username": "toto",
+                "permissions": {
+                  "readOnly": false
+                }
+              }
+            ]
+          },
+          {
+            "name": "admin_resource",
+            "data": {
+              "key": "value"
+            },
+            "permissions": [
+              {
+                "username": "bob",
+                "permissions": {
+                  "readOnly": true
+                }
+              },
+              {
+                "username": "admin",
+                "permissions": {
+                  "readOnly": false
+                }
+              }
+            ]
+          }
+        ]
+      }
+      fs.writeFileSync(optionsPath, JSON.stringify(options, null, 2))
+      fs.stat(optionsPath, function (err) {
+        if (err) should.fail(err)
+        done()
+      })
+    })
+  })
+
+  describe ('See bob\'s resource', function() {
     it('bob should see 1 resources', function(done) {
       agent
       .get('/permissions')
@@ -170,7 +181,7 @@ describe('<Unit test Server>', function() {
         response.requester.should.equal('admin')
         // admin should see all resources, because he is part
         // of 'admins' group
-        response.result.length.should.equal(3)
+        response.result.length.should.equal(2)
         // let's dig in... verify each result list the adminIdentity
         // with a read/write permission
         const filter = function(permission) {
@@ -259,7 +270,7 @@ describe('<Unit test Server>', function() {
         response.requester.should.equal('admin')
         // admin should still see all 3 resources, because he is part
         // of 'admins' group
-        response.result.length.should.equal(3)
+        response.result.length.should.equal(2)
         // let's dig in... verify each result list the adminIdentity
         // with a read/write permission
         const filter = function(permission) {
@@ -283,3 +294,5 @@ describe('<Unit test Server>', function() {
   })
 
 })
+
+console.log('YYYYYPPPPP 99')

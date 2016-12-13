@@ -84,6 +84,7 @@ csgrant.init(
       process.exit(-2)
     }
     else {
+      csgrant.dump()
       console.log('resources loaded')
 
       // start the server
