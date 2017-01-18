@@ -28,13 +28,11 @@ exports.getDb = function() {return listName}
 
 // set the list name and the redis url
 function init(url, databaseName) {
- listName = databaseName
- if (!url)
+  listName = databaseName
+  if (!url)
     throw "no url specified for database"
-
   if (client)
     client.quit()
-
   let options = {}
   options.url = 'redis://' + url
   client = redis.createClient(options)

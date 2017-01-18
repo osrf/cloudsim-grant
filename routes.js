@@ -292,17 +292,6 @@ exports.ownsResource = function(resource, readOnly) {
   }
 }
 
-function dispatch(req, res) {
-
-console.log('dispatch middleware!')
-
-  const result =[]
-  res.status(200).jsonp({
-    result: result
-
-  })
-}
-
 exports.setPermissionsRoutes = function(app) {
   // grant user permission to a resource
   // (add user to a group)
@@ -315,10 +304,6 @@ exports.setPermissionsRoutes = function(app) {
   app.delete('/permissions',
     exports.authenticate,
     exports.revoke)
-
-  app.put('/permissions',
-    exports.authenticate,
-    dispatch)
 
   // get all user permissions for all resources
   app.get('/permissions',

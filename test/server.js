@@ -11,16 +11,15 @@ const supertest = require('supertest')
 const tok = require('../token')
 const model = require('../model')
 
-const log = console.log // function(){} // console.log
+const log = function(){} // console.log
 
-// keys.private
 // before launching the server, we want to
 // generate a cutom configuration
 
-let dump
+
 function parseResponse(text, log) {
   if(log) {
-    dump('test/server.js')
+    csgrant.dump()
   }
   let res
   try {
@@ -55,6 +54,7 @@ let adminToken
 let bobToken
 let agent
 let app
+let csgrant
 let keys
 
 describe('<Unit test Server>', function() {
@@ -62,6 +62,9 @@ describe('<Unit test Server>', function() {
   // generate keys for this test
   before(function() {
     keys = tok.generateKeys()
+    log('keys:\n', keys)
+    log('======\npub k:\n\n', keys.public,'\n\n')
+    log('======\npriv k:\n\n', keys.private,'\n\n')
     tok.initKeys(keys.public, keys.private)
   })
 
@@ -87,6 +90,19 @@ describe('<Unit test Server>', function() {
     })
   })
 
+  before(function(done) {
+    tok.verifyToken(bobToken, (err, data)=>{
+      if(err) {
+        log(err)
+        should.fail(err)
+      }
+      if(data) {
+        log('Token data:', data)
+        done()
+      }
+    })
+  })
+
   before(function() {
     model.init('127.0.0.1', 'cloudsim-grant-test')
     model.clearDb()
@@ -101,9 +117,11 @@ describe('<Unit test Server>', function() {
       // this is our custom .env file content
       let env = `
 PORT=4444
+
 CLOUDSIM_ADMIN="admins"
 CLOUDSIM_AUTH_PUB_KEY=${keyStr}
     `
+      log('.env:', envPath, '\n', env)
       fs.writeFileSync(envPath, env)
       // check that it exists
       fs.stat(envPath, function (err) {
@@ -168,7 +186,9 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
           }
         ]
       }
-      fs.writeFileSync(optionsPath, JSON.stringify(options, null, 2))
+      const fileData = JSON.stringify(options, null, 2)
+      log('options.json:', optionsPath, '\n', fileData)
+      fs.writeFileSync(optionsPath, fileData)
       fs.stat(optionsPath, function (err) {
         if (err) should.fail(err)
         done()
@@ -179,7 +199,7 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
     it('Should be online', function(done) {
       app = require('../server')
       agent = supertest.agent(app)
-      dump = app.csgrant.dump
+      csgrant = app.csgrant
       done()
     })
   })
@@ -265,7 +285,7 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
         "readOnly": false
       })
       .end(function(err,res){
-        const response = parseResponse(res.text, res.status != 200)
+        var response = parseResponse(res.text, res.status != 200)
         res.status.should.be.equal(200)
         response.success.should.equal(true)
         response.requester.should.equal('admin')
@@ -329,40 +349,13 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
         done()
       })
     })
-  })
 
-
-  describe('Revoking a resource', function() {
-    it('revoking "bob" should not fail', function(done) {
-      agent
-      .put('/permissions')
-      .set('Acccept', 'application/json')
-      .set('authorization', adminToken)
-      .send([
-        {
-          server: 'https://devportal.cloudsim.io',
-          type: 'REVOKE_RESOURCE',
-          granter: 'admin',
-          grantee: 'bob',
-          resource: 'admin_resource',
-          permissions: {
-            readOnly: true,
-          }
-        }
-      ])
-      .end(function(err,res){
-        const response = parseResponse(res.text, res.status != 200)
-        res.status.should.be.equal(200)
-//        response.success.should.equal(true)
-//        response.requester.should.equal('admin')
-        done()
-      })
-    })
   })
 
   after(function(done) {
-    app.csgrant.model.clearDb()
+    csgrant.model.clearDb()
     done()
   })
 
 })
+

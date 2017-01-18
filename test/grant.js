@@ -6,8 +6,7 @@ const model = require('../model')
 const token = require('../token')
 
 // true: log appears on the console, false: no logging
-const enableLog = false
-const log = enableLog ? console.log: ()=>{}
+const log = ()=>{} // console.log
 
 // we need keys for this test
 const keys = token.generateKeys()
@@ -23,7 +22,7 @@ describe('<Unit Test grant>', function() {
 
   before(function(done) {
     csgrant.init('admins',
-      [], 'cloudsim-grant-test', '127.0.0.1', null, (err)=>{
+    [], 'cloudsim-grant-test', '127.0.0.1', null, (err)=>{
       if (err) {
         should.fail('init error')
       }
@@ -297,8 +296,10 @@ describe('<Unit Test grant>', function() {
 
           resource.permissions[1].username.should.equal('me')
           resource.permissions[1].permissions.readOnly.should.equal(false)
+
           resource.permissions[2].username.should.equal('admins')
           resource.permissions[2].permissions.readOnly.should.equal(false)
+
 
           done()
         }

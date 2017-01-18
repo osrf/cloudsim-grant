@@ -13,7 +13,6 @@ let  privateKey = "not a key"
 // the values found in the .env file. Only the test needs to
 // call it directly.
 exports.initKeys = function(publicK, privateK) {
-
   if (publicK)
     publicKey = publicK.replace(/\\n/g, "\n");
   if (privateK)
