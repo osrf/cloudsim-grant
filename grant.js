@@ -143,7 +143,8 @@ function dispatch(actions, identities, callback) {
     }
     case 'REVOKE_RESOURCE': {
       console.log("Todo")
-      if(true)
+      const todo = true
+      if(todo)
         throw "todo"
       break
     }
