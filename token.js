@@ -8,19 +8,16 @@ const NodeRSA = require('node-rsa')
 
 let  publicKey = "not a key"
 let  privateKey = "not a key"
-let  authUrl = "not a url"
 
 // this function sets the keys. It is called automatically with
 // the values found in the .env file. Only the test needs to
 // call it directly.
-exports.initKeys = function(publicK, privateK, _authUrl) {
+exports.initKeys = function(publicK, privateK) {
 
   if (publicK)
     publicKey = publicK.replace(/\\n/g, "\n");
   if (privateK)
     privateKey = privateK.replace(/\\n/g, "\n");
-
-  authUrl = _authUrl
 }
 
 // generates keys that can be used with jsonwebtoken
@@ -59,8 +56,12 @@ exports.verifyToken = function(token, cb) {
 
 // quick test of the functionality
 exports.test = function() {
-  console.log("\npub=[" +  publicKey + "]\n\npriv=[" + privateKey + "]\n\nurl", authUrl)
-  exports.signToken({"success" : true }, (token) => {
+  console.log("\npub=[" +  publicKey + "]\n\npriv=[" + privateKey + "]\n\n")
+  exports.signToken({"success" : true }, (err, token) => {
+    if (err) {
+      console.log('error signing:' + err)
+      return
+    }
     console.log('signed: ' + token)
     console.log('\n\nverify...')
     exports.verifyToken(token, console.log)

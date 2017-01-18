@@ -15,9 +15,6 @@ function log(s) {
   }
 }
 
-let listName = 'cloudsim-xxxxxg'
-
-/*
 // the database list where data is saved
 let listName = 'cloudsim-grant'
 if (process.env.NODE_ENV === "test") {
@@ -26,15 +23,11 @@ if (process.env.NODE_ENV === "test") {
   // use the test list instead of the live one
   listName = 'cloudsim-grant_test'
 }
-*/
 
-let id
-exports.setId = function(i) {id = i}
 exports.getDb = function() {return listName}
 
-// set the list name
+// set the list name and the redis url
 function init(url, databaseName) {
-console.log('XXXX XIXXX INIT', databaseName)
  listName = databaseName
  if (!url)
     throw "no url specified for database"

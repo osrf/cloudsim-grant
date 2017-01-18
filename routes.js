@@ -39,6 +39,7 @@ exports.grant = function(req, res) {
       "success":false,
       "error":"missing required data: grantee, resource or readOnly"
     })
+    return
   }
   const readOnly = JSON.parse(data.readOnly)
 

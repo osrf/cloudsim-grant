@@ -80,38 +80,22 @@ app.get('/', function (req, res) {
   res.end(s)
 })
 
-csgrant.setId('toto')
 
 csgrant.setPermissionsRoutes(app)
 
-let resources = [
-  {
-    "server": "https://test.cloudsim.io",
-    "type": "CREATE_RESOURCE",
-    "name": "toto_resource",
-    "creator": "bob",
-    "data": {
-      "txt": "toto_resource data"
-    }
-  },
-]
 
 // share the server (for tests)
 app.csgrant = csgrant
 exports = module.exports = app
 
 console.log('loading options.json...')
+let resources = []
 try {
   const options = require('./options.json')
-  if (options) {
-    console.log('replacing default options with:' +
-      JSON.stringify(options, null, 2)
-    )
-    resources = options.resources
-  }
+  resources = options.resources
 }
 catch(e) {
-  console.log('Can\'t load ./options.json: ' + e)
+  console.log('Error loading ./options.json:', e)
 }
 
 // call init and serve when the database is loaded
@@ -127,14 +111,11 @@ csgrant.init(
       process.exit(-2)
     }
     else {
-      csgrant.dump()
-      console.log('resources loaded')
-
+      csgrant.dump('test server resources loaded')
       // start the server
       httpServer.listen(port, function(){
-        console.log('listening on *:' + port);
+        console.log('listening on *:' + port)
       })
     }
   }
 )
-

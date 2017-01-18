@@ -6,7 +6,7 @@ const model = require('../model')
 const token = require('../token')
 
 // true: log appears on the console, false: no logging
-const enableLog = true
+const enableLog = false
 const log = enableLog ? console.log: ()=>{}
 
 // we need keys for this test
@@ -20,6 +20,17 @@ let meToken
 let eventsList = []
 
 describe('<Unit Test grant>', function() {
+
+  before(function(done) {
+    csgrant.init('admins',
+      [], 'cloudsim-grant-test', '127.0.0.1', null, (err)=>{
+      if (err) {
+        should.fail('init error')
+      }
+      done()
+    })
+  })
+
   before(function(done) {
     model.clearDb()
     token.signToken({identities: ['me']}, (e, tok)=>{
@@ -286,10 +297,8 @@ describe('<Unit Test grant>', function() {
 
           resource.permissions[1].username.should.equal('me')
           resource.permissions[1].permissions.readOnly.should.equal(false)
-
           resource.permissions[2].username.should.equal('admins')
           resource.permissions[2].permissions.readOnly.should.equal(false)
-
 
           done()
         }
@@ -416,7 +425,8 @@ describe('<Unit Test grant>', function() {
     it('should be possible for jack to add a blender', (done) => {
       eventsList = []
       csgrant.createResource('jack', 'blender', {blades:5}, (e)=>{
-        if(e) should.fail(e)
+        if(e)
+          should.fail('create blender fail:' + e)
         done()
         eventsList.length.should.equal(1)
         eventsList[0].resource.should.equal('blender')

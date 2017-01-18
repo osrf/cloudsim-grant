@@ -22,6 +22,9 @@ exports.events = events
 
 // this identity (a user or a group) has read/write access to every resource
 let adminIdentity
+// the resources data structure
+let resources = {}
+
 
 // This function fires a resource change event to interested parties.
 // resource: the name of the resource
@@ -41,9 +44,6 @@ function emit(resource, operation, usersToNotify) {
   events.emit('resource', resource, operation, users)
 }
 
-// the resources data structure
-let resources = {}
-
 // write the content of the db to the terminal
 exports.dump = function (msg) {
   let s = JSON.stringify(resources, null, 3)
@@ -51,7 +51,8 @@ exports.dump = function (msg) {
   console.log('\n\nCLOUSDSIM GRANT DUMP\n',
     title,
     '\n',
-    '  DB:', model.getDb(),
+    '  DB:', model.getDb(), '\n',
+    '  admin identity:', adminIdentity,
     '\n',s,
     '\n-----\n')
 }
@@ -65,13 +66,13 @@ exports.dump = function (msg) {
 // @databaseUrl: the ip of the Redis db
 // @server: the httpServer used to initialize socket.io
 // @cb: callback
-function init(adminId, resources, databaseName, databaseUrl, server, cb) {
-  log('cloudsim-grant init')
+function init(adminId, actions, databaseName, databaseUrl, server, cb) {
+  resources = {}
   adminIdentity = adminId
   // set the name of the list where data is stored
   model.init(databaseUrl, databaseName)
   log('loading redis list "' + databaseName + '" at url: ' + databaseUrl)
-  loadPermissions(resources, (err) =>{
+  loadPermissions(actions, (err) =>{
     if (err) {
       console.log('error while loading the permissions from the database')
       throw err
@@ -84,12 +85,12 @@ function init(adminId, resources, databaseName, databaseUrl, server, cb) {
   })
 }
 
-function dispatch(actions, callback) {
+
+function dispatch(actions, identities, callback) {
   const params = {}
   for (let i in actions) {
     const action = actions[i]
-    const type = action.type
-    console.log('\n\nDISPATCH:', action)
+    const type = action.action
     switch (type) {
     case 'CREATE_RESOURCE': {
       let name  // we'll put the resource name here
@@ -99,6 +100,7 @@ function dispatch(actions, callback) {
       }
       else {
         createResourceWithType(action.creator, action.prefix, action.data,
+        // before the callbcak
         function(err, data, resourceName){
           if (!err) {
             // if we were able to create the resource,
@@ -115,19 +117,22 @@ function dispatch(actions, callback) {
       break
     }
     case 'DELETE_RESOURCE': {
-
-      if(action)throw new Error("todo.. delete resource " + action.resource)
+      if (isAuthorizedSync(identities, action.resource, false)) {
+        setResource(maction.user, resource, null, cb)
+      }
       break
     }
     case 'UPDATE_RESOURCE': {
-console.log('XXXXX XXXXX')
-      if(action)throw "todo update"
+      if (isAuthorizedSync(identities, action.resource, false)) {
+        setResource(action.user, resource, null, cb)
+      }
+
+      if(action)throw new Error("todo update")
       break
     }
     case 'GRANT_RESOURCE': {
       if(action.permissions.allowDowngrade){
-console.log('DSSS XXXXX')
-        if(action)throw ("todo: downgrade")
+        if(action)throw new Error("todo: downgrade")
       }
       grantPermission(action.granter,
                       action.grantee,
@@ -137,11 +142,13 @@ console.log('DSSS XXXXX')
       break
     }
     case 'REVOKE_RESOURCE': {
-      throw "todo"
+      console.log("Todo")
+      if(true)
+        throw "todo"
       break
     }
     default: {
-      throw ('unknown type: "' + type +
+      throw new Error('unknown type: "' + type +
         '" for action resource: "' +
         JSON.stringify(action) + '"')
     }
@@ -150,7 +157,7 @@ console.log('DSSS XXXXX')
 }
 
 // read emissions from the database
-function loadPermissions(resources, cb) {
+function loadPermissions(actions, cb) {
   // callback for db operations
   const callback = function(e, r) {
     if (e) {
@@ -166,14 +173,14 @@ function loadPermissions(resources, cb) {
       cb(err)
       return
     }
-    log('data loaded, clearing db')
+    console.log('' + items.length +  ' actions loaded in "' + model.getDb() + '"')
     // remove the data in the db
     model.clearDb(true)
     // if the datbase was empty, we need to populate it with the
     // initial resources. Otherwise, they are first in the list
     if (items.length == 0) {
-      console.log('Empty database, loading defaults')
-      dispatch(resources, callback)
+      console.log('Empty database, loading defaults:', actions)
+      dispatch(actions, false, callback)
 /*
       // load resources and permissions
       for (let i in resources) {
@@ -298,7 +305,7 @@ function setResource(me, resource, data, cb) {
 // create a new resource with an existing name
 function createResource (me, resource, data, cb) {
   if(resources[resource]) {
-    cb('"' + resource + '" already exists')
+    cb( new Error('"' + resource + '" already exists'))
     return
   }
   setResource(me, resource, data, cb)
@@ -505,35 +512,46 @@ function revokePermission (me, user, resource, readOnly, cb) {
 }
 
 // this is the synchronous version of isAuthorized. It returns
-// true if the user has access to the specified resource
-function isAuthorizedSync(user, resourceName, readOnly) {
+// true if any of the user has access to the specified resource
+// @identity: a username or a list of usernames
+// @resourceName: the resourceName
+// @readOnly: false for read/write access, true for read only access
+function isAuthorizedSync(identity, resourceName, readOnly) {
 
-  if(!user)
-    return false
-
-  const resource = resources[resourceName]
-  if (!resource) {
-    return false
-  }
-
-  if (user === adminIdentity){
+  const users = Array.isArray(identity)?identity:[identity]
+  for (let i in users) {
+    const user = users[i]
+    if(!user)
+      return false
+    // check that resource exists
+    const resource = resources[resourceName]
+    if (!resource) {
+      return false
+    }
+    // admin identity has access to everything
+    if (user === adminIdentity){
+      return true
+    }
+    // check that user has permission
+    const permissions  = resource.permissions
+    const current = permissions[user]
+    if (!current) {
+      return false
+    }
+    // check for enough permission
+    if(current.readOnly && readOnly == false) {
+      return false
+    }
+    // user in the list, with enough permissions
     return true
   }
-
-  const permissions  = resource.permissions
-  const current = permissions[user]
-  if (!current) {
-    return false
-  }
-  // not enough permission
-  if(current.readOnly && readOnly == false) {
-    return false
-  }
-  // user in the list, with enough permissions
-  return true
 }
 
-// Check if a user already has a given permission for a resource
+// Check if a user (or any user in a list of users) already has a given
+// permission for a resource
+// @user: a username or a list of usernames
+// @resourceName: the resourceName
+// @readOnly: false for read/write access, true for read only access
 function isAuthorized(user, resource, readOnly, cb) {
   const r = isAuthorizedSync(user, resource, readOnly)
   cb(null, r)
