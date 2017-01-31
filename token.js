@@ -48,23 +48,16 @@ exports.generateKeys = function() {
 // the private key is necessary
 // the private key should only be on the auth server
 exports.signToken = function (data, cb) {
-  jwt.sign(data, privateKey, { algorithm: 'RS256' }, cb)
+  const options = {
+    algorithm: 'RS256',
+    expiresIn: 60 * 60 * 24 * 180,
+  }
+  jwt.sign(data, privateKey, options, cb)
 }
 
 // verify a token... requires the public key of the server in the .env file
 exports.verifyToken = function(token, cb) {
   jwt.verify(token, publicKey,  {algorithms: ['RS256']}, cb)
-}
-
-
-// quick test of the functionality
-exports.test = function() {
-  console.log("\npub=[" +  publicKey + "]\n\npriv=[" + privateKey + "]\n\nurl", authUrl)
-  exports.signToken({"success" : true }, (token) => {
-    console.log('signed: ' + token)
-    console.log('\n\nverify...')
-    exports.verifyToken(token, console.log)
-  })
 }
 
 // read the environment variables. They contain the keys(s)
