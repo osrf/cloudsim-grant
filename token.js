@@ -8,6 +8,7 @@ const NodeRSA = require('node-rsa')
 
 let  publicKey = "not a key"
 let  privateKey = "not a key"
+let  authUrl = "not a url"
 
 // this function sets the keys. It is called automatically with
 // the values found in the .env file. Only the test needs to
@@ -17,6 +18,7 @@ exports.initKeys = function(publicK, privateK) {
     publicKey = publicK.replace(/\\n/g, "\n");
   if (privateK)
     privateKey = privateK.replace(/\\n/g, "\n");
+
 }
 
 // generates keys that can be used with jsonwebtoken
@@ -44,27 +46,17 @@ exports.generateKeys = function() {
 // the private key is necessary
 // the private key should only be on the auth server
 exports.signToken = function (data, cb) {
-  jwt.sign(data, privateKey, { algorithm: 'RS256' }, cb)
+  const options = {
+    algorithm: 'RS256',
+    // good for 6 months (in seconds)
+    expiresIn: 60 * 60 * 24 * 180,
+  }
+  jwt.sign(data, privateKey, options, cb)
 }
 
 // verify a token... requires the public key of the server in the .env file
 exports.verifyToken = function(token, cb) {
   jwt.verify(token, publicKey,  {algorithms: ['RS256']}, cb)
-}
-
-
-// quick test of the functionality
-exports.test = function() {
-  console.log("\npub=[" +  publicKey + "]\n\npriv=[" + privateKey + "]\n\n")
-  exports.signToken({"success" : true }, (err, token) => {
-    if (err) {
-      console.log('error signing:' + err)
-      return
-    }
-    console.log('signed: ' + token)
-    console.log('\n\nverify...')
-    exports.verifyToken(token, console.log)
-  })
 }
 
 // read the environment variables. They contain the keys(s)

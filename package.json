@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "coveralls": "./node_modules/.bin/eslint . && export NODE_ENV=test; istanbul cover _mocha -- -u exports -R spec && istanbul-coveralls",
-    "test": "export NODE_ENV=test && ./node_modules/.bin/eslint . ; istanbul cover --print both _mocha -- -u exports -R spec"
+    "test": "./node_modules/.bin/eslint . && export NODE_ENV=test; istanbul cover --print both _mocha -- -u exports -R spec"
   },
   "repository": {
     "type": "mercurial",
@@ -19,7 +19,6 @@
     "dotenv": "^2.0.0",
     "eslint": "^3.8.1",
     "express": "^4.14.0",
-    "http": "0.0.0",
     "istanbul": "^0.4.5",
     "istanbul-coveralls": "^1.0.3",
     "mocha": "^3.0.2",
