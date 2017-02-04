@@ -126,14 +126,9 @@ function dispatch(actions, identities, callback) {
       if (isAuthorizedSync(identities, action.resource, false)) {
         setResource(action.user, resource, null, cb)
       }
-
-      if(action)throw new Error("todo update")
       break
     }
     case 'GRANT_RESOURCE': {
-      if(action.permissions.allowDowngrade){
-        if(action)throw new Error("todo: downgrade")
-      }
       grantPermission(action.granter,
                       action.grantee,
                       action.resource,
@@ -142,10 +137,11 @@ function dispatch(actions, identities, callback) {
       break
     }
     case 'REVOKE_RESOURCE': {
-      console.log("Todo")
-      const todo = true
-      if(todo)
-        throw "todo"
+      revokePermission(action.granter,
+                       action.grantee,
+                       action.resource,
+                       action.permissions.readOnly,
+                       callback)
       break
     }
     default: {
@@ -182,43 +178,6 @@ function loadPermissions(actions, cb) {
     if (items.length == 0) {
       console.log('Empty database, loading defaults:', actions)
       dispatch(actions, false, callback)
-/*
-      // load resources and permissions
-      for (let i in resources) {
-        const resourceAction = resources[i]
-        dispatch(resourceAction, callback)
-
-        const resource = resources[i]
-        const resourceName = resource.name
-        const data = resource.data
-        const permissions = resource.permissions
-        // we need to split users into a creator and grantees
-        let creator
-        // find first user that has non readonly pemission and promote him/her to
-        // the creator
-        const first = permissions.filter( e => {
-          return e.permissions.readOnly == false
-        })[0]
-        if (!first) {
-          throw new Error("Resource '" + resourceName + "' has no read/write user!")
-        }
-        else {
-          creator = first.username
-          // create the resource now
-          setResource(creator, resourceName, data, callback)
-        }
-        // the resource has been created... now let's share it with the others
-        for (let j in permissions) {
-          const permission = permissions[j]
-          const grantee = permission.username
-          if (creator === grantee)
-            continue  // skip the creator
-          const readOnly = permission.permissions.readOnly
-          // grant accesss to this resource for our grantee
-          grantPermission(creator, grantee, resourceName, readOnly, callback)
-        }
-      }
-*/
     }
     // put the data back
     for (let i=0; i < items.length; i++) {
