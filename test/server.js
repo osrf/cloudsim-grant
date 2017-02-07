@@ -137,7 +137,6 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
       const options = {
         "resources":[
           {
-            "server": "https://test.cloudsim.io",
             "action": "CREATE_RESOURCE",
             "resource": "bob_resource",
             "creator": "bob",
@@ -146,7 +145,6 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
             }
           },
           {
-            "server": "https://test.cloudsim.io",
             "action": "CREATE_RESOURCE",
             "prefix": "toto_resource",
             "param": "totoId",
@@ -156,7 +154,6 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
             }
           },
           {
-            "server": "https://test.cloudsim.io",
             "action": "CREATE_RESOURCE",
             "prefix": "totosub",
             "suffix": ":totoId",
@@ -166,7 +163,6 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
             }
           },
           {
-            "server": "https://test.cloudsim.io",
             "action": "CREATE_RESOURCE",
             "resource": "admin_resource",
             "creator": "admin",
@@ -175,15 +171,26 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
             }
           },
           {
-            "server": "https://devportal.cloudsim.io",
-            "action": "GRANT_RESOURCE",
+            "action": "GRANT_PERMISSION",
             "granter": "admin",
             "grantee": "bob",
             "resource": "admin_resource",
             "permissions": {
               "readOnly": true,
             }
-          }
+          },
+          {
+            "action": "GRANT_PERMISSION",
+            "granter": "bob",
+            "grantee": "houdini",
+            "resource": "admin_resource"
+          },
+          {
+            "action": "REVOKE_PERMISSION",
+            "granter": "admin",
+            "grantee": "houdini",
+            "resource": "admin_resource"
+          },
         ]
       }
       const fileData = JSON.stringify(options, null, 2)
@@ -203,7 +210,7 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
       done()
     })
   })
-  describe ('See bob\'s resource', function() {
+  describe ('See bob\'s resources: ', function() {
     it('bob should see 2 resources', function(done) {
       agent
       .get('/permissions')
@@ -211,7 +218,7 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
       .set('authorization', bobToken)
       .send()
       .end(function(err,res){
-        var response = parseResponse(res.text, res.status != 200)
+        var response = parseResponse(res.text, true )//res.status != 200)
         res.status.should.be.equal(200)
         response.success.should.equal(true)
         response.requester.should.equal('bob')

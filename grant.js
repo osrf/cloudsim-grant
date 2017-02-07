@@ -86,70 +86,67 @@ function init(adminId, actions, databaseName, databaseUrl, server, cb) {
 }
 
 
-function dispatch(actions, identities, callback) {
+function dispatchAction(action, identities, callback) {
   const params = {}
-  for (let i in actions) {
-    const action = actions[i]
-    const type = action.action
-    switch (type) {
-    case 'CREATE_RESOURCE': {
-      let name  // we'll put the resource name here
-      if (action.resource) {
-        name = action.resource
-        createResource(action.creator, action.resource, action.data, callback)
-      }
-      else {
-        createResourceWithType(action.creator, action.prefix, action.data,
-        // before the callbcak
-        function(err, data, resourceName){
-          if (!err) {
-            // if we were able to create the resource,
-            if (action.param) {
-              params[action.param] = resourceName
-              name = resourceName
-              console.log(' >> params', params)
-            }
+  const type = action.action
+  switch (type) {
+  case 'CREATE_RESOURCE': {
+    let name  // we'll put the resource name here
+    if (action.resource) {
+      name = action.resource
+      createResource(action.creator, action.resource, action.data, callback)
+    }
+    else {
+      createResourceWithType(action.creator, action.prefix, action.data,
+      // before the callbcak
+      function(err, data, resourceName){
+        if (!err) {
+          // if we were able to create the resource,
+          if (action.param) {
+            params[action.param] = resourceName
+            name = resourceName
+            console.log(' >> params', params)
           }
-          callback(err, data)
-        })
-      }
-      log('new resource:', action.creator, name, action.data)
-      break
+        }
+        callback(err, data)
+      })
     }
-    case 'DELETE_RESOURCE': {
-      if (isAuthorizedSync(identities, action.resource, false)) {
-        setResource(maction.user, resource, null, cb)
-      }
-      break
+    log('new resource:', action.creator, name, action.data)
+    break
+  }
+  case 'DELETE_RESOURCE': {
+    if (isAuthorizedSync(identities, action.resource, false)) {
+      setResource(action.user, resource, null, cb)
     }
-    case 'UPDATE_RESOURCE': {
-      if (isAuthorizedSync(identities, action.resource, false)) {
-        setResource(action.user, resource, null, cb)
-      }
-      break
+    break
+  }
+  case 'UPDATE_RESOURCE': {
+    if (isAuthorizedSync(identities, action.resource, false)) {
+      setResource(action.user, resource, null, cb)
     }
-    case 'GRANT_RESOURCE': {
-      grantPermission(action.granter,
-                      action.grantee,
-                      action.resource,
-                      action.permissions.readOnly,
-                      callback)
-      break
-    }
-    case 'REVOKE_RESOURCE': {
-      revokePermission(action.granter,
-                       action.grantee,
-                       action.resource,
-                       action.permissions.readOnly,
-                       callback)
-      break
-    }
-    default: {
-      throw new Error('unknown type: "' + type +
-        '" for action resource: "' +
-        JSON.stringify(action) + '"')
-    }
-    }
+    break
+  }
+  case 'GRANT_PERMISSION': {
+    grantPermission(action.granter,
+                    action.grantee,
+                    action.resource,
+                    action.permissions.readOnly,
+                    callback)
+    break
+  }
+  case 'REVOKE_PERMISSION': {
+    revokePermission(action.granter,
+                     action.grantee,
+                     action.resource,
+                     action.permissions.readOnly,
+                     callback)
+    break
+  }
+  default: {
+    throw new Error('unknown type: "' + type +
+      '" for action resource: "' +
+      JSON.stringify(action) + '"')
+  }
   }
 }
 
@@ -177,8 +174,12 @@ function loadPermissions(actions, cb) {
     // initial resources. Otherwise, they are first in the list
     if (items.length == 0) {
       console.log('Empty database, loading defaults:', actions)
-      dispatch(actions, false, callback)
+      for (let i in actions) {
+        const action = actions[i]
+        dispatchAction(action, null, callback)
+      }
     }
+
     // put the data back
     for (let i=0; i < items.length; i++) {
       const item = items[i]
