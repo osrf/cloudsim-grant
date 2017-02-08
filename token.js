@@ -8,7 +8,6 @@ const NodeRSA = require('node-rsa')
 
 let  publicKey = "not a key"
 let  privateKey = "not a key"
-let  authUrl = "not a url"
 
 // this function sets the keys. It is called automatically with
 // the values found in the .env file. Only the test needs to
@@ -18,7 +17,6 @@ exports.initKeys = function(publicK, privateK) {
     publicKey = publicK.replace(/\\n/g, "\n");
   if (privateK)
     privateKey = privateK.replace(/\\n/g, "\n");
-
 }
 
 // generates keys that can be used with jsonwebtoken

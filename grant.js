@@ -1,8 +1,13 @@
 'use strict'
 
+// node modules
+const EventEmitter = require('events')
+// third party modules
+const deasync = require("deasync")
+// local modules
 const model = require("./model")
 const sockets = require('./sockets')
-const EventEmitter = require('events')
+
 
 // when false, log output is suppressed
 exports.showLog = false
@@ -85,69 +90,88 @@ function init(adminId, actions, databaseName, databaseUrl, server, cb) {
   })
 }
 
+// use the deasync module to turn an async call into a sync one
+const getNextIdSync = deasync(model.getNextResourceId)
 
-function dispatchAction(action, identities, callback) {
-  const params = {}
-  const type = action.action
-  switch (type) {
+function dispatchAction(action, params) {
+  console.log('Dispatch')
+  const actionType = action.action
+  switch (actionType) {
   case 'CREATE_RESOURCE': {
     let name  // we'll put the resource name here
+    let prefix
+    let suffix
+    let param
+    if (action.suffix) {
+      if (action.suffix.indexOf(':') == 0)
+        param = action.suffix.substring(1, action.suffix.length)
+      else
+        suffix = action.suffix
+    }
     if (action.resource) {
       name = action.resource
-      createResource(action.creator, action.resource, action.data, callback)
     }
     else {
-      createResourceWithType(action.creator, action.prefix, action.data,
-      // before the callbcak
-      function(err, data, resourceName){
-        if (!err) {
-          // if we were able to create the resource,
-          if (action.param) {
-            params[action.param] = resourceName
-            name = resourceName
-            console.log(' >> params', params)
-          }
-        }
-        callback(err, data)
-      })
+      try {
+        name = getNextIdSync(action.prefix)
+      }
+      catch(err) {
+        return {"error": err}
+      }
     }
-    log('new resource:', action.creator, name, action.data)
-    break
+    console.log('new resource:', action.creator, name, action.data)
+    const r = setResourceSync(action.creator, action.resource, action.data)
+    return r
+    // break
   }
   case 'DELETE_RESOURCE': {
-    if (isAuthorizedSync(identities, action.resource, false)) {
-      setResource(action.user, resource, null, cb)
-    }
-    break
+    const r = setResourceSync(action.user, action.resource)
+    return r
+    // }
+    // break
   }
   case 'UPDATE_RESOURCE': {
-    if (isAuthorizedSync(identities, action.resource, false)) {
-      setResource(action.user, resource, null, cb)
-    }
-    break
+    const r = setResourceSync(action.user, action.resource, action.data)
+    return r
+    // break
   }
   case 'GRANT_PERMISSION': {
-    grantPermission(action.granter,
+    const r = grantPermissionSync(action.granter,
                     action.grantee,
                     action.resource,
-                    action.permissions.readOnly,
-                    callback)
-    break
+                    action.permissions.readOnly)
+    return r
+    // break
   }
   case 'REVOKE_PERMISSION': {
-    revokePermission(action.granter,
+    const r = revokePermissionSync(action.granter,
                      action.grantee,
                      action.resource,
-                     action.permissions.readOnly,
-                     callback)
-    break
+                     action.permissions.readOnly)
+    return r
+    // break
   }
   default: {
-    throw new Error('unknown type: "' + type +
+    throw new Error('unknown action type: "' + actionType +
       '" for action resource: "' +
       JSON.stringify(action) + '"')
   }
   }
+}
+
+function dispatchActions(actions) {
+  const results = []
+  // this accumulates parameters
+  const params = {}
+  for (let i in actions) {
+    const action = actions[i]
+    console.log(''+ i + '/' + actions.length + ': ' + JSON.stringify(action))
+    const r = dispatchAction(action, params)
+console.log('Dispatch result:', i, r)
+    results.push(r)
+    exports.dump('after:' + i + ' result: ' + JSON.stringify(r))
+  }
+  return results
 }
 
 // read emissions from the database
@@ -174,12 +198,15 @@ function loadPermissions(actions, cb) {
     // initial resources. Otherwise, they are first in the list
     if (items.length == 0) {
       console.log('Empty database, loading defaults:', actions)
-      for (let i in actions) {
-        const action = actions[i]
-        dispatchAction(action, null, callback)
-      }
+      const results = dispatchActions(actions)
+      console.log(results)
     }
+  })
+}
 
+
+/*
+    const results = []
     // put the data back
     for (let i=0; i < items.length; i++) {
       const item = items[i]
@@ -187,28 +214,28 @@ function loadPermissions(actions, cb) {
       switch (item.operation) {
       case 'set': {
         log('set')
-        setResource(item.data.owner,
+        const r = setResourceSync(item.data.owner,
                       item.data.resource,
-                      item.data.data,
-                      callback)
+                      item.data.data)
+        results.push(r)
         break
       }
       case 'grant': {
         log('grant ')
-        grantPermission(item.data.granter,
+        const r = grantPermissionSync(item.data.granter,
                           item.data.grantee,
                           item.data.resource,
-                          item.data.readOnly,
-                          callback)
+                          item.data.readOnly)
+        results.push(r)
         break
       }
       case 'revoke': {
         log('revoke')
-        revokePermission(item.data.granter,
+        const r = revokePermissionSync(item.data.granter,
                            item.data.grantee,
                            item.data.resource,
-                           item.data.readOnly,
-                           callback)
+                           item.data.readOnly)
+        results.push(r)
         break
       }
       default: {
@@ -217,13 +244,15 @@ function loadPermissions(actions, cb) {
       }
       }
     }
-    cb(null)
+    cb(null, results)
   })
-}
+
+*/
+
+
 
 // create update delete a resource.
 function setResourceSync(me, resource, data) {
-
   model.setResource(me, resource, data)
   if (!data) {
     const usersToNotify = []

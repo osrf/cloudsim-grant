@@ -5,7 +5,7 @@ const redis = require("redis")
 let client = redis.createClient()
 
 // when true, most output is suppressed
-exports.showLog = false
+exports.showLog = true
 
 // log to console
 // @s string to log
@@ -139,7 +139,6 @@ function getNextResourceId(resourceType, cb) {
     cb(null, resourceType + '-' + numberStr)
   });
 }
-
 
 // save ab object to the db (after JSON string conversion)
 // name: the key name for the data

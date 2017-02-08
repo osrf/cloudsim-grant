@@ -60,12 +60,13 @@ let keys
 describe('<Unit test Server>', function() {
 
   // generate keys for this test
-  before(function() {
+  before(function(done) {
     keys = tok.generateKeys()
     log('keys:\n', keys)
     log('======\npub k:\n\n', keys.public,'\n\n')
     log('======\npriv k:\n\n', keys.private,'\n\n')
     tok.initKeys(keys.public, keys.private)
+    done()
   })
 
   before(function(done) {
@@ -197,7 +198,8 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
       log('options.json:', optionsPath, '\n', fileData)
       fs.writeFileSync(optionsPath, fileData)
       fs.stat(optionsPath, function (err) {
-        if (err) should.fail(err)
+        if (err)
+          should.fail(err)
         done()
       })
     })
@@ -218,7 +220,7 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
       .set('authorization', bobToken)
       .send()
       .end(function(err,res){
-        var response = parseResponse(res.text, true )//res.status != 200)
+        var response = parseResponse(res.text, res.status != 200)
         res.status.should.be.equal(200)
         response.success.should.equal(true)
         response.requester.should.equal('bob')
@@ -238,7 +240,7 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
       .set('authorization', adminToken)
       .send()
       .end(function(err,res){
-        const response = parseResponse(res.text, res.status != 200)
+        const response = parseResponse(res.text, true ) // res.status != 200)
         res.status.should.be.equal(200)
         response.success.should.equal(true)
         response.requester.should.equal('admin')
