@@ -71,8 +71,8 @@ console.log('============================================')
 app.get('/', function (req, res) {
   const info = details()
   const s = `
-    <h1>Cloudsim-sim server</h1>
-    <div>Gazebo controller is running</div>
+    <h1>Cloudsim-grant test server</h1>
+    <div>is running</div>
     <pre>
     ${info}
     </pre>

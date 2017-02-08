@@ -93,71 +93,74 @@ function init(adminId, actions, databaseName, databaseUrl, server, cb) {
 // use the deasync module to turn an async call into a sync one
 const getNextIdSync = deasync(model.getNextResourceId)
 
-function dispatchAction(action, params) {
-  console.log('Dispatch')
-  const actionType = action.action
-  switch (actionType) {
-  case 'CREATE_RESOURCE': {
-    let name  // we'll put the resource name here
-    let prefix
-    let suffix
-    let param
+function processAction(action, params) {
+  // returns the resource name
+  const getName = function(action) {
+    // does it have a name?
+    if (action.resource)
+      return action.resource
+    // is it a parameter?
+    let suffixValue
     if (action.suffix) {
-      if (action.suffix.indexOf(':') == 0)
-        param = action.suffix.substring(1, action.suffix.length)
-      else
-        suffix = action.suffix
+      if (action.suffix.indexOf(':') == 0) {
+        const paramName = action.suffix.substring(1, action.suffix.length)
+        suffixValue = params[paramName]
+      }
+      return action.suffix
     }
-    if (action.resource) {
-      name = action.resource
+    if (!action.prefix || action.prefix.length ==0) {
+      const actStr = JSON.stringify(action)
+      throw new Error("action has no resource or prefix: " + actStr)
     }
-    else {
+    // no suffix value yet, we find the next available index
+    if (!suffixValue) {
       try {
-        name = getNextIdSync(action.prefix)
+        suffixValue = getNextIdSync(action.prefix)
+        // we may need to save the value for later
+        if (action.param) {
+          params[action.param] = suffixValue
+        }
       }
       catch(err) {
         return {"error": err}
       }
     }
+    return action.prefix + '-' + suffixValue
+  }
+
+  if (action.action == 'CREATE_RESOURCE'){
+    const name = getName(action)
     console.log('new resource:', action.creator, name, action.data)
     const r = setResourceSync(action.creator, action.resource, action.data)
     return r
-    // break
   }
-  case 'DELETE_RESOURCE': {
+  if (action.action == 'DELETE_RESOURCE') {
     const r = setResourceSync(action.user, action.resource)
     return r
-    // }
-    // break
   }
-  case 'UPDATE_RESOURCE': {
+  if (action.action == 'UPDATE_RESOURCE') {
     const r = setResourceSync(action.user, action.resource, action.data)
     return r
-    // break
   }
-  case 'GRANT_PERMISSION': {
+  if (action.action == 'GRANT_PERMISSION') {
     const r = grantPermissionSync(action.granter,
                     action.grantee,
                     action.resource,
                     action.permissions.readOnly)
     return r
-    // break
   }
-  case 'REVOKE_PERMISSION': {
+  if (action.action == 'REVOKE_PERMISSION') {
     const r = revokePermissionSync(action.granter,
                      action.grantee,
                      action.resource,
                      action.permissions.readOnly)
     return r
-    // break
   }
-  default: {
-    throw new Error('unknown action type: "' + actionType +
-      '" for action resource: "' +
-      JSON.stringify(action) + '"')
-  }
-  }
+  throw new Error('unknown action type: "' + action.action +
+    '" for action: "' +
+    JSON.stringify(action) + '"')
 }
+
 
 function dispatchActions(actions) {
   const results = []
@@ -165,12 +168,13 @@ function dispatchActions(actions) {
   const params = {}
   for (let i in actions) {
     const action = actions[i]
-    console.log(''+ i + '/' + actions.length + ': ' + JSON.stringify(action))
-    const r = dispatchAction(action, params)
-console.log('Dispatch result:', i, r)
+    console.log('\n\n'+ i + '/' + actions.length + ': ' + JSON.stringify(action))
+    const r = processAction(action, params)
+console.log('Process result:', i + '/' + actions.length ,  r)
     results.push(r)
     exports.dump('after:' + i + ' result: ' + JSON.stringify(r))
   }
+  console.log('dispatchActions done')
   return results
 }
 
@@ -194,12 +198,14 @@ function loadPermissions(actions, cb) {
     console.log('' + items.length +  ' actions loaded in "' + model.getDb() + '"')
     // remove the data in the db
     model.clearDb(true)
+console.log('db cleared')
     // if the datbase was empty, we need to populate it with the
     // initial resources. Otherwise, they are first in the list
     if (items.length == 0) {
       console.log('Empty database, loading defaults:', actions)
       const results = dispatchActions(actions)
-      console.log(results)
+      console.log('loadPermissions', results)
+      cb(null, results)
     }
   })
 }
@@ -266,7 +272,6 @@ function setResourceSync(me, resource, data) {
   }
   // adding or updating
   else {
-
     if(resources[resource]) {
       // resource update
       resources[resource].data = data
@@ -280,7 +285,9 @@ function setResourceSync(me, resource, data) {
         data: data,
         permissions: permissions
       }
+console.log('CREATED')
       emit(resource, 'create')
+console.log('EMITED')
     }
   }
   return {error: null, result: resources[resource]}

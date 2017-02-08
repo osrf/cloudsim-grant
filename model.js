@@ -5,7 +5,7 @@ const redis = require("redis")
 let client = redis.createClient()
 
 // when true, most output is suppressed
-exports.showLog = true
+exports.showLog = false
 
 // log to console
 // @s string to log
@@ -75,7 +75,7 @@ function revoke(granter, grantee, resource, readOnly ) {
 
 // create, update or delete a resource
 // creates the resource if it does not exists
-// deletss the resource if data is null or undefined
+// deletes the resource if data is null or undefined
 // updates the resource with new data if it exists
 function setResource(owner, resource, resourceData) {
   const data = {

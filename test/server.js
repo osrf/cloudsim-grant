@@ -184,13 +184,19 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
             "action": "GRANT_PERMISSION",
             "granter": "bob",
             "grantee": "houdini",
-            "resource": "admin_resource"
+            "resource": "admin_resource",
+            "permissions": {
+              "readOnly": true,
+            }
           },
           {
             "action": "REVOKE_PERMISSION",
             "granter": "admin",
             "grantee": "houdini",
-            "resource": "admin_resource"
+            "resource": "admin_resource",
+            "permissions": {
+               "readOnly": true,
+            }
           },
         ]
       }
@@ -204,14 +210,16 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
       })
     })
   })
+
   describe ('Server', function() {
     it('Should be online', function(done) {
       app = require('../server')
       agent = supertest.agent(app)
       csgrant = app.csgrant
       done()
-    })
+    }).timeout(10000)
   })
+
   describe ('See bob\'s resources: ', function() {
     it('bob should see 2 resources', function(done) {
       agent
