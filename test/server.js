@@ -337,7 +337,7 @@ CLOUDSIM_AUTH_PUB_KEY=${keyStr}
       .set('authorization', adminToken)
       .send()
       .end(function(err,res){
-        const response = parseResponse(res.text, res.status != 200)
+        const response = parseResponse(res.text, true)// res.status != 200)
         res.status.should.be.equal(200)
         response.success.should.equal(true)
         response.requester.should.equal('admin')

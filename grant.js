@@ -93,6 +93,9 @@ function init(adminId, actions, databaseName, databaseUrl, server, cb) {
 // use the deasync module to turn an async call into a sync one
 const getNextIdSync = deasync(model.getNextResourceId)
 
+
+
+
 function processAction(action, params) {
   // returns the resource name
   const getName = function(action) {
@@ -108,24 +111,38 @@ function processAction(action, params) {
       }
       return action.suffix
     }
+
+    // example of an action with no provided suffix... it must have a prefix
+    //
+    // {"action":"CREATE_RESOURCE",
+    //  "prefix":"toto_resource",
+    //  "param":"totoId",
+    //  "creator":"toto",
+    //  "data":{
+    //      "txt":"toto_resource-xxx data"
+    //  }
+    // }
     if (!action.prefix || action.prefix.length ==0) {
       const actStr = JSON.stringify(action)
-      throw new Error("action has no resource or prefix: " + actStr)
+      throw new Error("action must have a resource or a prefix: " + actStr)
     }
     // no suffix value yet, we find the next available index
     if (!suffixValue) {
       try {
-        suffixValue = getNextIdSync(action.prefix)
-        // we may need to save the value for later
+        const name = getNextIdSync(action.prefix)
+        // we may need to save the number suffix value for later
         if (action.param) {
+          // from "toto-001" to "001"
+          suffixValue = name.substring(name.lastIndexOf("-") +1, name.length)
           params[action.param] = suffixValue
         }
+        return name
       }
       catch(err) {
         return {"error": err}
       }
     }
-    return action.prefix + '-' + suffixValue
+    throw new Error("can't compute valid name for action: " + JSON.stringify(action))
   }
 
   if (action.action == 'CREATE_RESOURCE'){
@@ -285,9 +302,7 @@ function setResourceSync(me, resource, data) {
         data: data,
         permissions: permissions
       }
-console.log('CREATED')
       emit(resource, 'create')
-console.log('EMITED')
     }
   }
   return {error: null, result: resources[resource]}
@@ -557,7 +572,6 @@ function isAuthorized(user, resource, readOnly, cb) {
 /// user: the requester... his permissions will be first
 /// returns nothing if user has no access
 function copyAndFormatResourceForOutput(user, resourceName) {
-
   // check for permission (readOnly)
   if (!isAuthorizedSync(user, resourceName, true)) {
     return null
