@@ -118,7 +118,6 @@ function readDb(cb) {
     for (var i =0; i < items.length; i++) {
       items [i] = JSON.parse(items[i])
     }
-
     // return the data
     cb(null, items)
   })

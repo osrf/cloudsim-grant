@@ -90,13 +90,16 @@ function loadPermissions(resources, cb) {
     log('cb ', r)
   }
 
+  let t = new Date()
   model.readDb((err, items)=>{
     if(err) {
       cb(err)
       return
     }
     log('data loaded')
+    console.log('Data loaded from db. Time taken: ' + (new Date() - t) + 'ms')
 
+    t = new Date()
     // if the datbase was empty, we need to populate it with the
     // initial resources. Otherwise, they are first in the list
     if (items.length == 0) {
@@ -172,6 +175,8 @@ function loadPermissions(resources, cb) {
       }
       }
     }
+
+    console.log('Reconstructed cache. Time taken: ' + (new Date() - t) + 'ms')
     cb(null)
   })
 }
