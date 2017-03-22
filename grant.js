@@ -29,8 +29,9 @@ exports.events = events
 function emit(resource, operation, usersToNotify) {
   // gather users (identities) of this resource
   const users = usersToNotify?usersToNotify:[]
-  if (resources[resource]) {
-    for (let user in resources[resource].permissions) {
+  if (resources.hasOwnProperty(resource)) {
+    let perm = resources[resource].permissions
+    for (let user in perm) {
       users.push(user)
     }
   }
@@ -51,6 +52,11 @@ exports.dump = function (msg) {
     '  DB:', model.listName,
     '\n',s,
     '\n-----\n')
+}
+
+// Clear cache in memory without wiping data from database server
+function clearCache() {
+  resources = {}
 }
 
 // Initialization
@@ -89,9 +95,8 @@ function loadPermissions(resources, cb) {
       cb(err)
       return
     }
-    log('data loaded, clearing db')
-    // remove the data in the db
-    model.clearDb()
+    log('data loaded')
+
     // if the datbase was empty, we need to populate it with the
     // initial resources. Otherwise, they are first in the list
     if (items.length == 0) {
@@ -131,11 +136,13 @@ function loadPermissions(resources, cb) {
     // put the data back
     for (let i=0; i < items.length; i++) {
       const item = items[i]
-      log(' [' + i + '/' + items.length + '] ' + JSON.stringify(item, null, 2))
+      // calling stringify repeatedly is computationally expensive
+      // so commented out for now
+      // log(' [' + i + '/' + items.length + '] ' + JSON.stringify(item, null, 2))
       switch (item.operation) {
       case 'set': {
         log('set')
-        setResource(item.data.owner,
+        setResourceLocal(item.data.owner,
                       item.data.resource,
                       item.data.data,
                       callback)
@@ -143,7 +150,7 @@ function loadPermissions(resources, cb) {
       }
       case 'grant': {
         log('grant ')
-        grantPermission(item.data.granter,
+        grantPermissionLocal(item.data.granter,
                           item.data.grantee,
                           item.data.resource,
                           item.data.readOnly,
@@ -152,7 +159,7 @@ function loadPermissions(resources, cb) {
       }
       case 'revoke': {
         log('revoke')
-        revokePermission(item.data.granter,
+        revokePermissionLocal(item.data.granter,
                            item.data.grantee,
                            item.data.resource,
                            item.data.readOnly,
@@ -170,26 +177,36 @@ function loadPermissions(resources, cb) {
 }
 
 // create update delete a resource.
-function setResourceSync(me, resource, data) {
+function setResourceSync(me, resource, data, local) {
 
-  model.setResource(me, resource, data)
+  if (!local)
+    model.setResource(me, resource, data)
   if (!data) {
-    const usersToNotify = []
-    for (let user in resources[resource].permissions) {
-      usersToNotify.push(user)
+    // NOTE: the same operation for gathering user data
+    // is done in the emit function so commented out for now
+    // const usersToNotify = []
+    // for (let user in resources[resource].permissions) {
+    //   usersToNotify.push(user)
+    // }
+    // // data is null, signifying deletion
+    // delete resources[resource]
+    // // delete is a special case where users are collected before
+    // emit(resource, 'delete', usersToNotify)
+
+    if (resources.hasOwnProperty(resource)) {
+      delete resources[resource]
+      emit(resource, 'delete')
     }
-    // data is null, signifying deletion
-    delete resources[resource]
-    // delete is a special case where users are collected before
-    emit(resource, 'delete', usersToNotify)
   }
   // adding or updating
   else {
-
-    if(resources[resource]) {
+    if(resources.hasOwnProperty(resource)) {
       // resource update
-      resources[resource].data = data
-      emit(resource, 'update')
+      let res = resources[resource];
+      if (res) {
+        res.data = data
+        emit(resource, 'update')
+      }
     }
     else {
       // brand new resource
@@ -208,6 +225,12 @@ function setResourceSync(me, resource, data) {
 // create update delete a resource.
 function setResource(me, resource, data, cb) {
   const result = setResourceSync(me, resource, data)
+  cb(result.error, result.result, resource)
+}
+
+// create update delete a resource without writing to db.
+function setResourceLocal(me, resource, data, cb) {
+  const result = setResourceSync(me, resource, data, true)
   cb(result.error, result.result, resource)
 }
 
@@ -272,7 +295,7 @@ function updateResource(me, resource, data, cb) {
   })
 }
 
-function grantPermissionSync(me, user, resource, readOnly) {
+function grantPermissionSync(me, user, resource, readOnly, local) {
   const p = JSON.stringify(resources, null, 2)
   log('Grant:', me, user, resource, '\n', p)
 
@@ -333,7 +356,8 @@ function grantPermissionSync(me, user, resource, readOnly) {
       '" access for "' + resource + '"'
   }
   // write it to the db
-  model.grant(me, user, resource, readOnly )
+  if (!local)
+    model.grant(me, user, resource, readOnly )
   // console.trace('GRANT moment', resource)
   emit(resource, 'grant')
   return {error: null, success: true, message: message}
@@ -345,8 +369,13 @@ function grantPermission(me, user, resource, readOnly, cb) {
   cb(result.error, result.success, result.message)
 }
 
-function revokePermissionSync (me, user, resource, readOnly) {
-  const innerRevoke = function(me, user, resource, readOnly) {
+function grantPermissionLocal(me, user, resource, readOnly, cb) {
+  const result = grantPermissionSync(me, user, resource, readOnly, true)
+  cb(result.error, result.success, result.message)
+}
+
+function revokePermissionSync (me, user, resource, readOnly, local) {
+  const innerRevoke = function(me, user, resource, readOnly, local) {
     const current = resources[resource].permissions[user]
     // If user has no authorization
     if (!current)
@@ -391,10 +420,14 @@ function revokePermissionSync (me, user, resource, readOnly) {
             '" and now has nothing'}
       }
 
+      // write it to the db
+      if (!local)
+        model.revoke(me, user, resource, readOnly )
+
       return result
     }
   }
-  const result = innerRevoke(me, user, resource, readOnly)
+  const result = innerRevoke(me, user, resource, readOnly, local)
   if (result.success)
     events.emit('resource', resource, 'revoke', [user])
   return result
@@ -402,6 +435,11 @@ function revokePermissionSync (me, user, resource, readOnly) {
 
 function revokePermission (me, user, resource, readOnly, cb) {
   const result = revokePermissionSync(me, user, resource, readOnly)
+  cb(result.error, result.success, result.message)
+}
+
+function revokePermissionLocal(me, user, resource, readOnly, cb) {
+  const result = revokePermissionSync(me, user, resource, readOnly, true)
   cb(result.error, result.success, result.message)
 }
 
@@ -538,6 +576,7 @@ function deleteUser(user, cb) {
 // database, setup
 exports.init = init
 exports.copyInternalDatabase = copyInternalDatabase
+exports.clearCache = clearCache
 
 // crud (create update read delete)
 exports.createResource = createResource
