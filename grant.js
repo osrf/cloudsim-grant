@@ -182,6 +182,11 @@ function loadPermissions(resources, cb) {
 }
 
 // create update delete a resource.
+// @me: user performing the operation
+// @resource: resource name
+// @data: resource data
+// @local: if set to true, the operation will performed only on
+// the resources in cache and not written back to database
 function setResourceSync(me, resource, data, local) {
 
   if (!local)
@@ -300,6 +305,13 @@ function updateResource(me, resource, data, cb) {
   })
 }
 
+// Grant permission on a resource
+// @me: grantor
+// @user: grantee
+// @resource: resource name
+// @readOnly: True to grant readOnly permission, otherwise write
+// @local: if set to true, the operation will performed only on
+// the resources in cache and not written back to database
 function grantPermissionSync(me, user, resource, readOnly, local) {
   const p = JSON.stringify(resources, null, 2)
   log('Grant:', me, user, resource, '\n', p)
@@ -379,6 +391,13 @@ function grantPermissionLocal(me, user, resource, readOnly, cb) {
   cb(result.error, result.success, result.message)
 }
 
+// Revoke permission on a resource
+// @me: grantor
+// @user: grantee
+// @resource: resource name
+// @readOnly: True to revoke readOnly permission, otherwise write
+// @local: if set to true, the operation will performed only on
+// the resources in cache and not written back to database
 function revokePermissionSync (me, user, resource, readOnly, local) {
   const innerRevoke = function(me, user, resource, readOnly, local) {
     const current = resources[resource].permissions[user]
