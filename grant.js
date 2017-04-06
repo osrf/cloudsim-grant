@@ -42,7 +42,7 @@ function emit(resource, operation, usersToNotify) {
 // the resources data structure
 let resources = {}
 
-let dbStateSaveInterval = 10000
+let dbStateSaveInterval = 1000
 // determines how often the state is saved to the database
 // i.e. the number of db operations / logs between saves.
 exports.setDbStateSaveInterval = function(value) {
