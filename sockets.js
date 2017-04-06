@@ -77,8 +77,10 @@ function SocketDict() {
 // Initialise the socket.io library
 // server:
 exports.init = function(server, events) {
-  if (!server)
+  if (!server) {
+    log('No server available, socket connections will not be established')
     return
+  }
   const io = require('socket.io')(server)
   userSockets.io = io
   log('Init sockets')
