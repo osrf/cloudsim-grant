@@ -15,6 +15,7 @@ exports.init = grant.init
 exports.copyInternalDatabase = grant.copyInternalDatabase
 exports.saveData = model.saveData
 exports.loadData = model.loadData
+exports.clearCache = grant.clearCache
 
 // routes
 exports.setPermissionsRoutes = routes.setPermissionsRoutes

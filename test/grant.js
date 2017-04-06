@@ -544,4 +544,41 @@ describe('<Unit Test grant>', function() {
     })
 
   })
+
+
+  describe('Database reload:', function() {
+    let dbcopy;
+    before(function(done) {
+      // copy database
+      dbcopy = csgrant.copyInternalDatabase()
+      dbcopy.should.not.be.empty()
+
+      done()
+    })
+
+    it('should be possible to clear the local cache without deleting data from database', (done) => {
+      // clear cache in memory
+      csgrant.clearCache()
+
+      // database cache should be empty now
+      const db = csgrant.copyInternalDatabase()
+      db.should.be.empty()
+      done()
+    })
+
+    it('should be possible to load data back from database into cache', (done) => {
+      let resources = null
+      let dbName = null
+      let dbUrl = null
+      let httpServer = null
+      csgrant.init(resources, dbName, dbUrl, httpServer, () => {
+        // fresh database should be equal to the old one before reload
+        const db = csgrant.copyInternalDatabase()
+        db.should.not.be.empty()
+        JSON.stringify(dbcopy).should.equal(JSON.stringify(db))
+        done()
+      })
+    })
+
+  })
 })

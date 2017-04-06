@@ -20,13 +20,16 @@ let listName = 'cloudsim-grant'
 
 // set the list name
 function init(databaseName) {
+  if (!databaseName)
+    return
+
   listName = databaseName
 }
 
 // connect to database using a URL
 function setDatabaseUrl(url) {
   if (!url)
-    throw "no url specified for database"
+    return
 
   if (client)
     client.quit()
