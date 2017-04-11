@@ -86,7 +86,7 @@ function init(initialResources, databaseName, databaseUrl, server, cb) {
   })
 }
 
-// read emissions from the database
+// read pemission from the database.
 function loadPermissions(initialResources, cb) {
   let t = new Date()
   model.loadData('state', (err, data) => {
@@ -145,6 +145,9 @@ function loadPermissions(initialResources, cb) {
   })
 }
 
+// read operation logs the database and reconstruct a cache of resources
+// @initialResources: Resources to be saved if the database is empty
+// @cb:  function(err)
 function loadPermissionLogs(initialResources, cb) {
   // callback for db operations
   const callback = function(e, r) {
