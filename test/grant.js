@@ -16,8 +16,11 @@ token.initKeys(keys.public, keys.private)
 // help debug (with a deluge of text)
 // csgrant.showLog = true
 
+const dbStateSaveInterval = 3
+
 let meToken
 let eventsList = []
+let eventsCountTotal = 0
 
 describe('<Unit Test grant>', function() {
 
@@ -40,11 +43,12 @@ describe('<Unit Test grant>', function() {
         users: users
       })
       log('RESOURCE event:', resource, operation, eventsList.length)
+      eventsCountTotal++
     })
 
     // set interval for saving database states
     // set to a small value to ensure the feature is used and tested
-    csgrant.setDbStateSaveInterval(3)
+    csgrant.setDbStateSaveInterval(dbStateSaveInterval)
     done()
   })
 
@@ -575,11 +579,23 @@ describe('<Unit Test grant>', function() {
       let dbName = null
       let dbUrl = null
       let httpServer = null
+
+      // db cache is reconstructed from saved state + number of operations in
+      // backlog. The backlog size should be a modulo of dbStateSaveInterval
+      const backlogSize = eventsCountTotal % dbStateSaveInterval
+      eventsList = []
+      eventsCountTotal = 0
+
       csgrant.init(resources, dbName, dbUrl, httpServer, () => {
         // fresh database should be equal to the old one before reload
         const db = csgrant.copyInternalDatabase()
         db.should.not.be.empty()
         JSON.stringify(db).should.equal(JSON.stringify(dbcopy))
+
+        // check events list to make sure only backlog number of operations
+        // are performed
+        eventsList.length.should.equal(backlogSize)
+
         done()
       })
     })
