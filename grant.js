@@ -42,6 +42,14 @@ function emit(resource, operation, usersToNotify) {
 // the resources data structure
 let resources = {}
 
+let dbStateSaveInterval = 1000
+// determines how often the state is saved to the database
+// i.e. the number of db operations / logs between saves.
+exports.setDbStateSaveInterval = function(value) {
+  dbStateSaveInterval = value
+}
+
+
 // write the content of the db to the terminal
 exports.dump = function (msg) {
   let s = JSON.stringify(resources, null, 3)
@@ -65,21 +73,82 @@ function clearCache() {
 // @databaseUrl: the ip of the Redis db
 // @server: the httpServer used to initialize socket.io
 // @cb: callback
-function init(resources, databaseName, databaseUrl, server, cb) {
+function init(initialResources, databaseName, databaseUrl, server, cb) {
   log('cloudsim-grant init')
   // set the name of the list where data is stored
   model.init(databaseName)
   model.setDatabaseUrl(databaseUrl)
   log('loading redis list "' + databaseName + '" at url: ' + databaseUrl)
-  loadPermissions(resources, () =>{
-    log('cloudsim-grant db "' + databaseName  + '" loaded\n')
+  loadPermissions(initialResources, () =>{
     sockets.init(server, events)
+    console.log('cloudsim-grant db "' + databaseName  + '" loaded\n')
     cb()
   })
 }
 
-// read emissions from the database
-function loadPermissions(resources, cb) {
+// read pemission from the database.
+function loadPermissions(initialResources, cb) {
+  let t = new Date()
+  model.loadData('state', (err, data) => {
+    if (err) {
+      cb(err)
+      return
+    }
+    if (!data) {
+      loadPermissionLogs(initialResources, (err) => {
+        if (err) {
+          cb(err)
+          return
+        }
+
+        t = new Date()
+        model.saveData('state', resources, (err) => {
+          if (err) {
+            cb(err)
+            return
+          }
+          console.log('State saved. Time taken: ' + (new Date() - t))
+          cb()
+          return
+        })
+      })
+    }
+    else {
+      console.log('State loaded. Time taken: ' + (new Date() - t))
+      // set resources from state data
+      resources = data
+
+      // check for if there are any operations that are not saved in state
+      // res is the number of operations performed post saved state
+      model.loadData('state-backlog', (err, res) => {
+        if (err) {
+          cb(err)
+          return
+        }
+        if (res && typeof (res == 'number') && res != 0) {
+          let offset = res*-1
+          model.readDbRange(offset, -1, (err, items) => {
+            if (err) {
+              cb(err)
+              return
+            }
+            if (items && items.length > 0) {
+              reconstructResources(items, cb)
+            }
+          })
+        }
+        else {
+          cb()
+        }
+      })
+    }
+  })
+}
+
+// read operation logs the database and reconstruct a cache of resources
+// @initialResources: Resources to be saved if the database is empty
+// @cb:  function(err)
+function loadPermissionLogs(initialResources, cb) {
   // callback for db operations
   const callback = function(e, r) {
     if (e) {
@@ -103,21 +172,22 @@ function loadPermissions(resources, cb) {
     // if the datbase was empty, we need to populate it with the
     // initial resources. Otherwise, they are first in the list
     if (items.length == 0) {
-      // load resources and permissions
-      for (let i in resources) {
-        const resource = resources[i]
+      // load initial resources and permissions
+      for (let i in initialResources) {
+        const resource = initialResources[i]
         const resourceName = resource.name
         const data = resource.data
         const permissions = resource.permissions
         // we need to split users into a creator and grantees
         let creator
-        // find first user that has non readonly pemission and promote him/her to
-        // the creator
+        // find first user that has non readonly pemission and promote him/her
+        // to the creator
         const first = permissions.filter( e => {
           return e.permissions.readOnly == false
         })[0]
         if (!first) {
-          throw new Error("Resource '" + resourceName + "' has no read/write user!")
+          throw new Error("Resource '" + resourceName +
+              "' has no read/write user!")
         }
         else {
           creator = first.username
@@ -136,48 +206,86 @@ function loadPermissions(resources, cb) {
         }
       }
     }
-    // put the data back
-    for (let i=0; i < items.length; i++) {
-      const item = items[i]
-      // calling stringify repeatedly is computationally expensive
-      // so commented out for now
-      // log(' [' + i + '/' + items.length + '] ' + JSON.stringify(item, null, 2))
-      switch (item.operation) {
-      case 'set': {
-        log('set')
-        setResourceLocal(item.data.owner,
-                      item.data.resource,
-                      item.data.data,
-                      callback)
-        break
-      }
-      case 'grant': {
-        log('grant ')
-        grantPermissionLocal(item.data.granter,
-                          item.data.grantee,
-                          item.data.resource,
-                          item.data.readOnly,
-                          callback)
-        break
-      }
-      case 'revoke': {
-        log('revoke')
-        revokePermissionLocal(item.data.granter,
-                           item.data.grantee,
-                           item.data.resource,
-                           item.data.readOnly,
-                           callback)
-        break
-      }
-      default: {
-        cb('Unknown operation "' + item.operation + '"')
-        return
-      }
-      }
+    else {
+      reconstructResources(items, callback)
     }
-
-    console.log('Reconstructed cache. Time taken: ' + (new Date() - t) + 'ms')
     cb(null)
+  })
+}
+
+function reconstructResources(items, cb) {
+  // callback for db operations
+  const callback = function(e, r) {
+    if (e) {
+      console.log('error reconstructing resources: ' + e)
+      cb(e)
+      return
+    }
+    log('cb ', r)
+  }
+
+  let t = new Date()
+  // put the data back
+  for (let i=0; i < items.length; i++) {
+    const item = items[i]
+    // calling stringify repeatedly is computationally expensive
+    // so commented out for now
+    // log(' [' + i + '/' + items.length + '] ' + JSON.stringify(item, null, 2))
+    switch (item.operation) {
+    case 'set': {
+      log('set')
+      setResourceLocal(item.data.owner,
+                    item.data.resource,
+                    item.data.data,
+                    callback)
+      break
+    }
+    case 'grant': {
+      log('grant ')
+      grantPermissionLocal(item.data.granter,
+                        item.data.grantee,
+                        item.data.resource,
+                        item.data.readOnly,
+                        callback)
+      break
+    }
+    case 'revoke': {
+      log('revoke')
+      revokePermissionLocal(item.data.granter,
+                         item.data.grantee,
+                         item.data.resource,
+                         item.data.readOnly,
+                         callback)
+      break
+    }
+    default: {
+      cb('Unknown operation "' + item.operation + '"')
+      return
+    }
+    }
+  }
+  console.log('Reconstructed cache. Time taken: ' + (new Date() - t) + 'ms')
+  cb(null)
+}
+
+// keep track of db operations and save the state
+// when the backlog is full
+function logDbWrite() {
+  model.incrData('state-backlog', (err, value) => {
+    if (value % dbStateSaveInterval === 0) {
+      model.saveData('state', resources, (err) => {
+        if (err) {
+          console.log('Error saving state')
+          return
+        }
+        model.saveData('state-backlog', 0, (err) => {
+          if (err) {
+            console.log('Error incr state-backlog')
+            return
+          }
+        })
+      })
+    }
   })
 }
 
@@ -189,8 +297,10 @@ function loadPermissions(resources, cb) {
 // the resources in cache and not written back to database
 function setResourceSync(me, resource, data, local) {
 
-  if (!local)
+  if (!local) {
     model.setResource(me, resource, data)
+    logDbWrite()
+  }
   if (!data) {
     // NOTE: the same operation for gathering user data
     // is done in the emit function so commented out for now
@@ -373,8 +483,10 @@ function grantPermissionSync(me, user, resource, readOnly, local) {
       '" access for "' + resource + '"'
   }
   // write it to the db
-  if (!local)
+  if (!local) {
     model.grant(me, user, resource, readOnly )
+    logDbWrite()
+  }
   // console.trace('GRANT moment', resource)
   emit(resource, 'grant')
   return {error: null, success: true, message: message}
@@ -445,8 +557,10 @@ function revokePermissionSync (me, user, resource, readOnly, local) {
       }
 
       // write it to the db
-      if (!local)
+      if (!local) {
         model.revoke(me, user, resource, readOnly )
+        logDbWrite()
+      }
 
       return result
     }
@@ -619,4 +733,3 @@ exports.revokePermission = revokePermission
 
 // inter module
 exports.isAuthorizedSync = isAuthorizedSync
-

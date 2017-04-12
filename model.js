@@ -110,8 +110,13 @@ function grant(granter, grantee, resource, readOnly ) {
 // object with the following keys:
 //   operation, resource, data
 function readDb(cb) {
+  readDbRange(0, -1, cb)
+}
+
+// read list from database with start and end range
+function readDbRange(start, end, cb) {
   // get all data from db
-  client.lrange(listName, 0, -1, function (error, items) {
+  client.lrange(listName, start, end, function (error, items) {
     if (error)
       cb(error)
     // transform items (in place) from strings to data
@@ -123,10 +128,14 @@ function readDb(cb) {
   })
 }
 
-// erases the list of all db operations
+// erases the list of all db operations and states
 function clearDb() {
-  client.del(listName)
-  console.log('"' + listName + '" database deleted')
+  client.keys(listName + '*', (err, keys) => {
+    for (let i = 0; i < keys.length; ++i) {
+      client.del(keys[i])
+      console.log('"' + keys[i]+ '" database deleted')
+    }
+  })
 }
 
 // function to get 0 in front of a number ( 9 -> 0009)
@@ -157,7 +166,11 @@ function saveData(name, value, cb) {
     cb("Error saving data: empty key name")
     return
   }
-  const strData = JSON.stringify(value)
+  let strData
+  if (typeof value != 'number')
+    strData = JSON.stringify(value)
+  else
+    strData = value
   const keyName = listName + ":" + name
   client.set(keyName, strData, (err, reply) => {
     if (reply === 'OK') {
@@ -189,6 +202,22 @@ function loadData(name, cb) {
   })
 }
 
+// increment a value of a key
+// the value must be a number
+function incrData(name, cb) {
+  if (!name || name === '') {
+    cb("Error incrementing data: empty key name")
+    return
+  }
+  const keyName = listName + ":" + name
+  client.incr(keyName, (err, data) => {
+    if (err) {
+      cb(err)
+      return
+    }
+    cb(null, data)
+  })
+}
 
 // Resources and permissions
 exports.init = init
@@ -198,6 +227,7 @@ exports.grant = grant
 exports.revoke = revoke
 exports.setResource = setResource
 exports.readDb = readDb
+exports.readDbRange = readDbRange
 exports.clearDb = clearDb
 exports.getNextResourceId = getNextResourceId
 
@@ -205,4 +235,5 @@ exports.getNextResourceId = getNextResourceId
 // save and load data directly
 exports.saveData = saveData
 exports.loadData = loadData
+exports.incrData = incrData
 

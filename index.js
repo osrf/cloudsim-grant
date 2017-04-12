@@ -16,6 +16,7 @@ exports.copyInternalDatabase = grant.copyInternalDatabase
 exports.saveData = model.saveData
 exports.loadData = model.loadData
 exports.clearCache = grant.clearCache
+exports.setDbStateSaveInterval = grant.setDbStateSaveInterval
 
 // routes
 exports.setPermissionsRoutes = routes.setPermissionsRoutes
