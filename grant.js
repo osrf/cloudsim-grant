@@ -89,27 +89,30 @@ function init(initialResources, databaseName, databaseUrl, server, cb) {
 // read pemission from the database.
 function loadPermissions(initialResources, cb) {
   let t = new Date()
+
+  const callback = function() {
+    // make sure initial resources and permissions are set
+    setupInitialResources(initialResources)
+    return cb()
+  }
+
   model.loadData('state', (err, data) => {
     if (err) {
-      cb(err)
-      return
+      return cb(err)
     }
     if (!data) {
-      loadPermissionLogs(initialResources, (err) => {
+      loadPermissionLogs((err) => {
         if (err) {
-          cb(err)
-          return
+          return cb(err)
         }
 
         t = new Date()
         model.saveData('state', resources, (err) => {
           if (err) {
-            cb(err)
-            return
+            return cb(err)
           }
           console.log('State saved. Time taken: ' + (new Date() - t))
-          cb()
-          return
+          return callback()
         })
       })
     }
@@ -122,23 +125,18 @@ function loadPermissions(initialResources, cb) {
       // res is the number of operations performed post saved state
       model.loadData('state-backlog', (err, res) => {
         if (err) {
-          cb(err)
-          return
+          return cb(err)
         }
         if (res && typeof (res == 'number') && res != 0) {
           let offset = res*-1
           model.readDbRange(offset, -1, (err, items) => {
             if (err) {
-              cb(err)
-              return
+              return cb(err)
             }
             if (items && items.length > 0) {
-              reconstructResources(items, cb)
+              reconstructResources(items, callback)
             }
           })
-        }
-        else {
-          cb()
         }
       })
     }
@@ -148,7 +146,7 @@ function loadPermissions(initialResources, cb) {
 // read operation logs the database and reconstruct a cache of resources
 // @initialResources: Resources to be saved if the database is empty
 // @cb:  function(err)
-function loadPermissionLogs(initialResources, cb) {
+function loadPermissionLogs(cb) {
   // callback for db operations
   const callback = function(e, r) {
     if (e) {
@@ -169,48 +167,64 @@ function loadPermissionLogs(initialResources, cb) {
     console.log('Data loaded from db. Time taken: ' + (new Date() - t) + 'ms')
 
     t = new Date()
-    // if the datbase was empty, we need to populate it with the
-    // initial resources. Otherwise, they are first in the list
-    if (items.length == 0) {
-      // load initial resources and permissions
-      for (let i in initialResources) {
-        const resource = initialResources[i]
-        const resourceName = resource.name
-        const data = resource.data
-        const permissions = resource.permissions
-        // we need to split users into a creator and grantees
-        let creator
-        // find first user that has non readonly pemission and promote him/her
-        // to the creator
-        const first = permissions.filter( e => {
-          return e.permissions.readOnly == false
-        })[0]
-        if (!first) {
-          throw new Error("Resource '" + resourceName +
-              "' has no read/write user!")
-        }
-        else {
-          creator = first.username
-          // create the resource now
-          setResource(creator, resourceName, data, callback)
-        }
-        // the resource has been created... now let's share it with the others
-        for (let j in permissions) {
-          const permission = permissions[j]
-          const grantee = permission.username
-          if (creator === grantee)
-            continue  // skip the creator
-          const readOnly = permission.permissions.readOnly
-          // grant accesss to this resource for our grantee
-          grantPermission(creator, grantee, resourceName, readOnly, callback)
-        }
-      }
-    }
-    else {
+    // if the datbase was not empty, reconstruct the resources
+    if (items.length > 0) {
       reconstructResources(items, callback)
     }
     cb(null)
   })
+}
+
+// Check if initial resources are in the database. If not, add them
+function setupInitialResources(initialResources) {
+
+  const callback = function(e, r) {
+    if (e) {
+      console.log('error loading permissions: ' + e)
+      cb(e)
+      return
+    }
+    log('cb ', r)
+  }
+
+  for (let i in initialResources) {
+    const resource = initialResources[i]
+
+    // skip resource if already exists
+    // TODO verify resource data and permissions?
+    if (resources.hasOwnProperty(resource))
+      continue
+
+    const resourceName = resource.name
+    const data = resource.data
+    const permissions = resource.permissions
+    // we need to split users into a creator and grantees
+    let creator
+    // find first user that has non readonly pemission and promote him/her
+    // to the creator
+    const first = permissions.filter( e => {
+      return e.permissions.readOnly == false
+    })[0]
+    if (!first) {
+      throw new Error("Resource '" + resourceName +
+          "' has no read/write user!")
+    }
+    else {
+      creator = first.username
+      // create the resource now
+      setResource(creator, resourceName, data, callback)
+    }
+    // the resource has been created... now let's share it with the others
+    for (let j in permissions) {
+      const permission = permissions[j]
+      const grantee = permission.username
+      if (creator === grantee)
+        continue  // skip the creator
+      const readOnly = permission.permissions.readOnly
+      // grant accesss to this resource for our grantee
+      grantPermission(creator, grantee, resourceName, readOnly, callback)
+    }
+  }
 }
 
 function reconstructResources(items, cb) {

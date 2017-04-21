@@ -633,5 +633,44 @@ describe('<Unit Test grant>', function() {
         done()
       })
     })
+
+    it('should be possible to reload database with new initial resource', (done) => {
+      let resources = [
+        {
+          name: 'robot',
+          data : {'type': 'humanoid'},
+          permissions: [
+            {
+              username: 'me',
+              permissions: {
+                readOnly: false
+              }
+            }
+          ]
+        }
+      ]
+      let dbName = null
+      let dbUrl = null
+      let httpServer = null
+      csgrant.init(resources, dbName, dbUrl, httpServer, () => {
+        // fresh database should not be equal to the old one before reload
+        // because an additional resource has been added
+        const db = csgrant.copyInternalDatabase()
+        db.should.not.be.empty()
+        JSON.stringify(db).should.not.equal(JSON.stringify(updatedDb))
+
+        // verify all original resources in old db are in the new db
+        for (let obj in updatedDb) {
+          updatedDb.hasOwnProperty(obj).should.equal(true)
+          db.hasOwnProperty(obj).should.equal(true)
+          JSON.stringify(updatedDb[obj]).should.equal(JSON.stringify(db[obj]))
+        }
+
+        // the new db should also have the robot resource
+        should.exist(db.robot)
+        db.robot.data.type.should.equal('humanoid')
+        done()
+      })
+    })
   })
 })
