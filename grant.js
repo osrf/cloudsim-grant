@@ -138,6 +138,9 @@ function loadPermissions(initialResources, cb) {
             }
           })
         }
+        else {
+          callback()
+        }
       })
     }
   })
@@ -147,21 +150,10 @@ function loadPermissions(initialResources, cb) {
 // @initialResources: Resources to be saved if the database is empty
 // @cb:  function(err)
 function loadPermissionLogs(cb) {
-  // callback for db operations
-  const callback = function(e, r) {
-    if (e) {
-      console.log('error loading permissions: ' + e)
-      cb(e)
-      return
-    }
-    log('cb ', r)
-  }
-
   let t = new Date()
   model.readDb((err, items)=>{
     if(err) {
-      cb(err)
-      return
+      return cb(err)
     }
     log('data loaded')
     console.log('Data loaded from db. Time taken: ' + (new Date() - t) + 'ms')
@@ -169,9 +161,10 @@ function loadPermissionLogs(cb) {
     t = new Date()
     // if the datbase was not empty, reconstruct the resources
     if (items.length > 0) {
-      reconstructResources(items, callback)
+      reconstructResources(items, cb)
     }
-    cb(null)
+    else
+      cb(null)
   })
 }
 
@@ -181,8 +174,7 @@ function setupInitialResources(initialResources) {
   const callback = function(e, r) {
     if (e) {
       console.log('error loading permissions: ' + e)
-      cb(e)
-      return
+      return cb(e)
     }
     log('cb ', r)
   }
@@ -232,8 +224,7 @@ function reconstructResources(items, cb) {
   const callback = function(e, r) {
     if (e) {
       console.log('error reconstructing resources: ' + e)
-      cb(e)
-      return
+      return cb(e)
     }
     log('cb ', r)
   }

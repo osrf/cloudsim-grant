@@ -672,5 +672,58 @@ describe('<Unit Test grant>', function() {
         done()
       })
     })
+
+    it('should be possible to clear database and cache', (done) => {
+      eventsList = []
+      // clear cache
+      csgrant.clearCache()
+      // clear entire database
+      model.clearDb(() => {
+        const db = csgrant.copyInternalDatabase()
+        db.should.be.empty()
+
+        // reload and check there are no resources
+        let resources = null
+        let dbName = null
+        let dbUrl = null
+        let httpServer = null
+        csgrant.init(resources, dbName, dbUrl, httpServer, () => {
+          // fresh database should be equal to the old one before reload
+          const db = csgrant.copyInternalDatabase()
+          db.should.be.empty()
+          eventsList.length.should.equal(0)
+          done()
+        })
+      })
+    })
+
+    let newDb
+    it('should be possible to add resource after a clean wipe', (done) => {
+      csgrant.createResource('me', 'super_toaster', {slots:100}, (e)=>{
+        if(e)
+          should.fail(e)
+        eventsList.length.should.equal(1)
+        eventsList[0].resource.should.equal('super_toaster')
+        eventsList[0].operation.should.equal('create')
+        eventsList[0].users.length.should.equal(1)
+        eventsList[0].users[0].should.equal('me')
+        // copy cache
+        newDb = csgrant.copyInternalDatabase()
+        done()
+      })
+    })
+
+    it('should be possible to reload dabase after a clean wipe', (done) => {
+      let resources = null
+      let dbName = null
+      let dbUrl = null
+      let httpServer = null
+      csgrant.init(resources, dbName, dbUrl, httpServer, () => {
+        const db = csgrant.copyInternalDatabase()
+        db.should.not.be.empty()
+        JSON.stringify(db).should.equal(JSON.stringify(newDb))
+        done()
+      })
+    })
   })
 })
