@@ -688,7 +688,7 @@ describe('<Unit Test grant>', function() {
         let dbUrl = null
         let httpServer = null
         csgrant.init(resources, dbName, dbUrl, httpServer, () => {
-          // fresh database should be equal to the old one before reload
+          // fresh database should be empty
           const db = csgrant.copyInternalDatabase()
           db.should.be.empty()
           eventsList.length.should.equal(0)
