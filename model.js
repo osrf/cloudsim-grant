@@ -129,12 +129,14 @@ function readDbRange(start, end, cb) {
 }
 
 // erases the list of all db operations and states
-function clearDb() {
+function clearDb(cb) {
   client.keys(listName + '*', (err, keys) => {
     for (let i = 0; i < keys.length; ++i) {
       client.del(keys[i])
       console.log('"' + keys[i]+ '" database deleted')
     }
+    if (cb)
+      cb()
   })
 }
 
@@ -236,4 +238,3 @@ exports.getNextResourceId = getNextResourceId
 exports.saveData = saveData
 exports.loadData = loadData
 exports.incrData = incrData
-
