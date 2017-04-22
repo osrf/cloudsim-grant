@@ -713,7 +713,7 @@ describe('<Unit Test grant>', function() {
       })
     })
 
-    it('should be possible to reload dabase after a clean wipe', (done) => {
+    it('should be possible to reload database after a clean wipe', (done) => {
       let resources = null
       let dbName = null
       let dbUrl = null
