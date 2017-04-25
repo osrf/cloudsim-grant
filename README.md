@@ -29,7 +29,7 @@ This is an npm module, not a web server.
 
 ### Who do I talk to? ###
 
-* Repo owner or admin: hugo@osrfoundation.org
+* Repo owner or admin: cloudsim@osrfoundation.org
 
 
 
