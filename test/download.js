@@ -37,8 +37,6 @@ describe('<Unit Test download>', function() {
 
   describe('Download file:', function() {
     it('should be able to download file', (done) => {
-
-      console.log ('filePath ' + filePath)
       agent
       .get('/download')
       .set('Accept', 'application/json')
@@ -48,7 +46,6 @@ describe('<Unit Test download>', function() {
         type: 'application/gzip'
       })
       .end(function(err,res) {
-        console.log(JSON.stringify(res))
         res.status.should.be.equal(200)
         res.header['content-type'].should.equal('application/gzip')
         res.header['content-disposition'].indexOf('test.tar.gz')
