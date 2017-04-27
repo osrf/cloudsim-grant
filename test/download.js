@@ -1,21 +1,15 @@
 'use strict'
 
 const supertest = require('supertest');
-const fs = require('fs')
 const csgrant = require('../index')
 
 let agent
 
-const filePath = '/tmp/csgrant-test.tar.gz'
+const filePath = __dirname + '/csgrant-test.tar.gz'
 
 describe('<Unit Test download>', function() {
 
   before(function(done) {
-    done()
-  })
-
-  before(function(done) {
-    fs.writeFileSync(filePath, '')
     done()
   })
 
@@ -43,6 +37,8 @@ describe('<Unit Test download>', function() {
 
   describe('Download file:', function() {
     it('should be able to download file', (done) => {
+
+      console.log ('filePath ' + filePath)
       agent
       .get('/download')
       .set('Accept', 'application/json')
@@ -60,10 +56,5 @@ describe('<Unit Test download>', function() {
         done()
       })
     })
-  })
-
-  after(function(done) {
-    fs.unlinkSync(filePath)
-    done()
   })
 })
