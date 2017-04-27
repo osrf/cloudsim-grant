@@ -13,8 +13,12 @@ exports.downloadFilePath = function (req, res) {
 
   if(!req.fileInfo) {
     const msg = 'Internal Server Error: file information not in request'
-    console.log(msg, filePath)
-    return res.satus(500).end(msg)
+    console.log(msg)
+    return res.status(500).end(msg)
+  }
+  let appType = 'application/zip'
+  if (req.fileInfo.type) {
+    appType = req.fileInfo.type
   }
 
   // req.fileInfo might be a string, or an object with a path property
@@ -34,7 +38,7 @@ exports.downloadFilePath = function (req, res) {
         return res.end('Not Found');
       }
     } else {
-      res.setHeader('Content-type', 'application/zip')
+      res.setHeader('Content-type', appType)
       res.setHeader('Content-disposition', 'attachment; filename=' + dName)
       res.setHeader('Content-Length', stat.size)
       var stream = fs.createReadStream(filePath);
@@ -51,4 +55,3 @@ exports.downloadFilePath = function (req, res) {
     }
   })
 }
-
