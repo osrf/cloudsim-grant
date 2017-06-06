@@ -1,6 +1,6 @@
 {
   "name": "cloudsim-grant",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "A small grant/revoke module for cloudsim",
   "main": "index.js",
   "scripts": {
@@ -14,11 +14,14 @@
   "author": "hugo@osrfoundation.org",
   "license": "ISC",
   "devDependencies": {
+    "body-parser": "^1.17.1",
     "eslint": "^3.8.1",
+    "express": "^4.15.2",
     "istanbul": "^0.4.5",
     "istanbul-coveralls": "^1.0.3",
     "mocha": "^3.0.2",
-    "should": "^11.1.0"
+    "should": "^11.1.0",
+    "supertest": "^3.0.0"
   },
   "dependencies": {
     "dotenv": "^2.0.0",
